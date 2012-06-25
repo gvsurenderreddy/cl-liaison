@@ -9,7 +9,7 @@
 
 (db.use "liaison")
 
-(setq *show-lisp-errors-p* t
+(setq hunchentoot:*show-lisp-errors-p* t
       *show-lisp-backtraces-p* t)
 (setq hunchentoot:*dispatch-table*
       (list
