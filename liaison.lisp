@@ -63,18 +63,17 @@
        (:title ,title)
        (:link :type "text/css" :rel "stylesheet" :href "/bs/css/bootstrap.css")
        (:link :type "text/css" :rel "stylesheet" :href "http://fonts.googleapis.com/css?family=Anonymous+Pro|Cantarell|Ubuntu|Ubuntu+Mono")
-       (:link :type "text/css" :rel "stylesheet" :href "/pr/prettify.css")
+;       (:link :type "text/css" :rel "stylesheet" :href "/pr/prettify.css")
        (:link :type "text/css" :rel "stylesheet" :href "/liaison.css")
-       (:link :type "text/css" :rel "stylesheet" :href "/solarized.css")
+;       (:link :type "text/css" :rel "stylesheet" :href "/solarized.css")
        (:link :type "text/css" :rel "stylesheet" :href "/css")
        (:link :rel "shortcut icon" :href "/favicon.ico")
        (:link :rel "apple-touch-icon" :href "/bs/images/apple-touch-icon.png")
        (:link :rel "apple-touch-icon" :sizes "72x72" :href "/bs/images/apple-touch-icon-72x72.png")
        (:link :rel "apple-touch-icon" :sizes "114x114" :href "/bs/images/apple-touch-icon-114x114.png")
        
-       (:script :type "text/javascript" :src "/jquery-min.js")
-       (:script :type "text/javascript" :src "/liaison.js")
-     
+       (:script :type "text/javascript" :src "/jquery-min.js"))
+
       (:body :style "padding-top: 10px;"
              ,@body
              (dialog-msg)
@@ -87,20 +86,20 @@
                         (htm
                          (:li (:a :href "/" "Home"))
                          (:li (:a :href "/logout" "Logout"))
-                         (:li (:a :href "#"
-                                  :onclick (str (ps (liaison.beacon)))
+                         (:li (:a :href "#" :onclick (str (ps ((@ liaison beacon))
+                                                              false))
                                   "Ping"))
-                        (:li (:a :href "#"
-                                 :onclick (str (ps (liaison.loader)
-                                                   (return false)))
-                                 "People")))
+                         (:li (:a :href "#"
+                                  :onclick (str (ps (lambda ()
+                                                      ((@ liaison loader)))))
+                                  "People")))
                         (htm
                          (:li (:a :href "/" "Home"))
                          (:li (:a :href "/login" "Login"))))))))
               (htm
                (:script :src "/bs/js/bootstrap.js")
-               (:script :src "/pr/prettify.js")
-               (:script :src "/liaison.js"))))))))
+               (:script :src "/js")
+               (:script :type "text/javascript" :src "http://maps.google.com/maps/api/js?sensor=false&key=AIzaSyDsOVRkRfKm3kBVrUaih3xRPYp6dRe8iZ4")))))))
 
 (defun u/uid ()
   (w/session
@@ -277,4 +276,56 @@
                    (setf (jsown:val po "uid")
                          (get-element "uid" person))))
              people)))))
+(defun handler/site-js ()
+  (setf (hunchentoot:content-type*) "text/javascript")
+  (ps
+    (var
+     liaison
+     (create
+      init (lambda ()
+             (if navigator.geolocation
+                 (navigator.geolocation.get-Current-Position liaison.init_success
+                                                           liaison.init_error)))
+      make_marker (lambda (lat lon the_title)
+                    (var mk (new ((@ google maps -Marker)
+                                  (create
+                                   position (new ((@ google maps -Lat-Long) lat lon))
+                                   map goog_map
+                                   title the_title)))))
+      loader (lambda ()
+               ((@ $ get-J-S-O-N) "/gather" (lambda (dat)
+                                              ((@ $ each)
+                                               dat
+                                               (lambda (k v)
+                                                 ((@ liaison make_marker)
+                                                  (@ v latitude)
+                                                  (@ v longitude)
+                                                  (@ v uid)))))))
+      beacon (lambda ()
+               (and (@ navigator geolocation)
+                    ((@ navigator geolocation get-Current-Position)
+                      (@ liaison success)
+                      (@ liaison failure))))
+      success (lambda (pos)
+                ((@ $ ajax) (create
+                             type "POST"
+                             url "/beacon"
+                             data (create position pos))))
+      failure (lambda ()
+                nil)
+      init_success (lambda (pos)
+                     ((@ ($ "#status") toggle))
+                     (setf goog_pos  (new ((@ google maps -Lat-Lng)
+                                          (@ pos coords latitude)
+                                          (@ pos coords longitude))))
+                     (setf goog_map (new ((@ google maps -Map)
+                                         ((@ document get-Element-By-Id) "canvas")
+                                          (create center goog_pos
+                                                 zoom 15
+                                                 map-Type-Id (@ google maps -Map-Type-Id -R-O-A-D-M-A-P)))))
+                     true)))
+    ((@ ($ document) ready) (lambda ()
+                              (defvar goog_map nil)
+                              
+                              ((@ liaison init))))))
 
