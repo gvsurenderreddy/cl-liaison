@@ -4,7 +4,7 @@
   (:use #:cl
         #:cl-who
         #:cl-mongo
-        #:chronicity
+        #:jsown
         #:parenscript)
   (:export #:srv/start
            #:srv/stop))

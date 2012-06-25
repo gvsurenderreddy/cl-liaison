@@ -15,8 +15,10 @@
       (list
        (hunchentoot:create-prefix-dispatcher "/login" 'handler/login)
        (hunchentoot:create-prefix-dispatcher "/register" 'handler/register)
+
        (hunchentoot:create-prefix-dispatcher "/beacon" 'ajax/beacon)
-       (hunchentoot:create-prefix-dispatcher "/mtest" 'ajax/load-map)
+       (hunchentoot:create-prefix-dispatcher "/gather" 'ajax/load-map)
+
        (hunchentoot:create-regex-dispatcher "^/$" 'page/main)))
 
 (defun srv/start (&key (port 8082))
@@ -29,6 +31,7 @@
     (hunchentoot:start *site-acceptor*)))
 (defun srv/stop ()
   (hunchentoot:stop *site-acceptor*))
+
 (defmacro w/session (&rest body)
   `(progn
      (hunchentoot:start-session)
@@ -43,9 +46,8 @@
   `(docs (iter (db.find ,collection ,query :limit 0))))
 (defmacro @-> (name)
   `(hunchentoot:parameter ,name))
-(defun w/ajax (msg)
-  (setf (hunchentoot:content-type*) "application/json")
-  msg)
+(defmacro re/kill (pattern target)
+  `(cl-ppcre:regex-replace-all ,pattern ,target ""))
 (defmacro w/page (title &rest body)
   `(cl-who:with-html-output-to-string
        (*standard-output* nil :prologue nil :indent t)
@@ -79,10 +81,11 @@
                     (if (w/session (hunchentoot:session-value :uid))
                         (htm
                          (:li (:a :href "/" "Home"))
-                         (:li (:a :href "http://twitter.github.com/bootstrap/" "Docs"))
                          (:li (:a :href "/logout" "Logout"))
-                         (:li (:a :href "/expire" "Expire")))
-;                         (:li (:a :href "#" (str (profile--get-user-uid)))))
+                         (:li (:a :href "#"
+                                  :onclick (str (ps
+                                                  (liaison.beacon)))
+                                  "Ping")))
                         (htm
                          (:li (:a :href "/" "Home"))
                          (:li (:a :href "/login" "Login"))))))))
@@ -90,6 +93,13 @@
                (:script :src "/bs/js/bootstrap.js")
                (:script :src "/pr/prettify.js")
                (:script :src "/liaison.js"))))))))
+
+(defun u/uid ()
+  (car (w/session
+        (hunchentoot:session-value :uid))))
+(defun w/ajax (msg)
+  (setf (hunchentoot:content-type*) "application/json")
+  msg)
 (defun unique-id ()
   (format nil "~a"
     (uuid:make-v4-uuid)))
@@ -208,15 +218,13 @@
         (register-action)
         (register-page))))
 (defun action/register ()
-(defmacro re/kill (pattern target)
-  `(cl-ppcre:regex-replace-all ,pattern ,target ""))
 (defun ajax/beacon ()
   (labels ((normalize-name (f)
              (re/kill "position"
                  (re/kill "coords"
                      (re/kill "\\]+|\\[+" f)))))
     (let* ((new-doc (make-document))
-           (my-uid (w/session (hunchentoot:session-value :uid)))
+           (my-uid (w/session (u/uid)))
            (all-keys (hunchentoot:post-parameters*)))
       (if (< 0 (length all-keys))
           (progn
@@ -230,24 +238,30 @@
             (w/ajax "{result:'true'}"))
           (w/ajax "{result:'failed'}"))))))
 (defun ajax/load-map ()
-  (let* ((cts (parse "30 minutes ago"))
-         (cts-sec (sec-of cts))
-         (cts-min (minute-of cts))
-         (cts-hour (hour-of cts))
-         (cts-day (day-of cts))
-         (cts-month (month-of cts))
-         (cts-year (year-of cts))
+  (let* ((cts (chronicity:parse "30 minutes ago"))
+         (cts-sec (chronicity:sec-of cts))
+         (cts-min (chronicity:minute-of cts))
+         (cts-hour (chronicity:hour-of cts))
+         (cts-day (chronicity:day-of cts))
+         (cts-month (chronicity:month-of cts))
+         (cts-year (chronicity:year-of cts))
          (mongo-timestamp (date-time cts-sec
                                      cts-min
                                      cts-hour
                                      cts-day
                                      cts-month
                                      cts-year))
-         (people (iter (db.find "beacon" ($ "timestamp" ($ "$gte" mongo-timestamp))))))
-    (w/page "Honk"
-        (:div :class "container"
-          (:div :class "row"
-            (:div :class "span12 well"
-              (:pre
-               (str (pp people)))))))))
-
+         (people (docs (iter (db.find "beacon"
+                                      ($ "timestamp"
+                                         ($ "$gte" mongo-timestamp)))))))
+    (w/ajax
+     (jsown:to-json
+      (mapcar #'(lambda (person)
+                 (let ((po (empty-object)))
+                   (setf (jsown:val po "latitude")
+                         (get-element "latitude" person))
+                   (setf (jsown:val po "longitude")
+                         (get-element "longitude" person))
+                   (setf (jsown:val po "uid")
+                         (get-element "uid" person))))
+             people)))))

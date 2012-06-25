@@ -11,6 +11,7 @@
                #:css-lite
                #:uuid
                #:chronicity
+               #:jsown
                #:cl-mongo)
   :components ((:file "package")
                (:file "liaison")))
