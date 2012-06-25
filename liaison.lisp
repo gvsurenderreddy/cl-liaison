@@ -63,17 +63,15 @@
        (:title ,title)
        (:link :type "text/css" :rel "stylesheet" :href "/bs/css/bootstrap.css")
        (:link :type "text/css" :rel "stylesheet" :href "http://fonts.googleapis.com/css?family=Anonymous+Pro|Cantarell|Ubuntu|Ubuntu+Mono")
-;       (:link :type "text/css" :rel "stylesheet" :href "/pr/prettify.css")
        (:link :type "text/css" :rel "stylesheet" :href "/liaison.css")
-;       (:link :type "text/css" :rel "stylesheet" :href "/solarized.css")
        (:link :type "text/css" :rel "stylesheet" :href "/css")
        (:link :rel "shortcut icon" :href "/favicon.ico")
        (:link :rel "apple-touch-icon" :href "/bs/images/apple-touch-icon.png")
        (:link :rel "apple-touch-icon" :sizes "72x72" :href "/bs/images/apple-touch-icon-72x72.png")
        (:link :rel "apple-touch-icon" :sizes "114x114" :href "/bs/images/apple-touch-icon-114x114.png")
-       
-       (:script :type "text/javascript" :src "/jquery-min.js"))
-
+       (:script :type "text/javascript" :src "/jquery-min.js")
+       (:script (ps (defvar goog_map nil)
+                    (defvar goog_markers nil))))
       (:body :style "padding-top: 10px;"
              ,@body
              (dialog-msg)
@@ -86,16 +84,17 @@
                         (htm
                          (:li (:a :href "/" "Home"))
                          (:li (:a :href "/logout" "Logout"))
-                         (:li (:a :href "#" :onclick (str (ps ((@ liaison beacon))
-                                                              false))
-                                  "Ping"))
                          (:li (:a :href "#"
-                                  :onclick (str (ps (lambda ()
-                                                      ((@ liaison loader)))))
-                                  "People")))
+                                  :onclick (ps ((@ liaison beacon))
+                                               false)
+                                  "Ping"))
+                          (:li (:a :href "#"
+                                   :onclick (ps ((@ liaison loader))
+                                                false)
+                                   "People")))
                         (htm
                          (:li (:a :href "/" "Home"))
-                         (:li (:a :href "/login" "Login"))))))))
+                         (:li (:a :href "/login" "Login")))))))))
               (htm
                (:script :src "/bs/js/bootstrap.js")
                (:script :src "/js")
@@ -289,9 +288,11 @@
       make_marker (lambda (lat lon the_title)
                     (var mk (new ((@ google maps -Marker)
                                   (create
-                                   position (new ((@ google maps -Lat-Long) lat lon))
+                                   position (new ((@ google maps -Lat-Lng) lat lon))
                                    map goog_map
-                                   title the_title)))))
+                                   title the_title))))
+                    ;((@ goog_markers push) mk)
+                    true)
       loader (lambda ()
                ((@ $ get-J-S-O-N) "/gather" (lambda (dat)
                                               ((@ $ each)
@@ -310,7 +311,8 @@
                 ((@ $ ajax) (create
                              type "POST"
                              url "/beacon"
-                             data (create position pos))))
+                             data (create position pos)))
+                true)
       failure (lambda ()
                 nil)
       init_success (lambda (pos)
@@ -325,7 +327,8 @@
                                                  map-Type-Id (@ google maps -Map-Type-Id -R-O-A-D-M-A-P)))))
                      true)))
     ((@ ($ document) ready) (lambda ()
-                              (defvar goog_map nil)
-                              
-                              ((@ liaison init))))))
+                              (var goog_map nil)
+                              (var goog_markers (array))
+                              ((@ liaison init))
+                              ((chain ((@ liaison delay) 1000) loader))))))
 
