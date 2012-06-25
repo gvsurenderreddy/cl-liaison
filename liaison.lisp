@@ -19,6 +19,8 @@
        (hunchentoot:create-prefix-dispatcher "/beacon" 'ajax/beacon)
        (hunchentoot:create-prefix-dispatcher "/gather" 'ajax/load-map)
 
+       (hunchentoot:create-prefix-dispatcher "/css" 'handler/site-css)
+
        (hunchentoot:create-regex-dispatcher "^/$" 'page/main)))
 
 (defun srv/start (&key (port 8082))
@@ -62,6 +64,7 @@
        (:link :type "text/css" :rel "stylesheet" :href "/liaison.css")
 ;       (:link :type "text/css" :rel "stylesheet" :href "/inez.css")
        (:link :type "text/css" :rel "stylesheet" :href "/solarized.css")
+       (:link :type "text/css" :rel "stylesheet" :href "/css")
        (:link :rel "shortcut icon" :href "/favicon.ico")
        (:link :rel "apple-touch-icon" :href "/bs/images/apple-touch-icon.png")
        (:link :rel "apple-touch-icon" :sizes "72x72" :href "/bs/images/apple-touch-icon-72x72.png")
@@ -237,6 +240,10 @@
             (db.save "beacon" new-doc)
             (w/ajax "{result:'true'}"))
           (w/ajax "{result:'failed'}"))))))
+(defun handler/site-css ()
+  (setf (hunchentoot:content-type*) "text/css")
+  (css-lite:css
+    ((:body) (:margin-bottom "60px"))))
 (defun ajax/load-map ()
   (let* ((cts (chronicity:parse "30 minutes ago"))
          (cts-sec (chronicity:sec-of cts))

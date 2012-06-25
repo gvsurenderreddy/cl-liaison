@@ -12,6 +12,7 @@
                #:uuid
                #:chronicity
                #:jsown
+               #:css-lite
                #:cl-mongo)
   :components ((:file "package")
                (:file "liaison")))
