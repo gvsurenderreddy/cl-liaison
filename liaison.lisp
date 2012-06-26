@@ -349,7 +349,7 @@
                        true)
                      (lambda () false))))
       mkimage (lambda ()
-               (new ((@ google maps -Marker-Image) "images/beachflag.png"
+               (new ((@ google maps -Marker-Image) "/girls_marker.gif"
                      (new ((@ google maps -Size) 20 32))
                      (new ((@ google maps -Point) 0 0))
                      (new ((@ google maps -Point) 0 32)))))
