@@ -19,6 +19,10 @@
 
        (hunchentoot:create-prefix-dispatcher "/beacon" 'ajax/beacon)
        (hunchentoot:create-prefix-dispatcher "/gather" 'ajax/load-map)
+       ;; (hunchentoot:create-prefix-dispatcher "/gather/yesterday" '(ajax/load-map "10 minutes ago")))
+       ;; (hunchentoot:create-prefix-dispatcher "/gather/30" '(ajax/load-map "30 minutes ago"))
+       ;; (hunchentoot:create-prefix-dispatcher "/gather/2" '(ajax/load-map "2 hours ago"))
+       ;; (hunchentoot:create-prefix-dispatcher "/gather/1" '(ajax/load-map "1 day ago"))
 
        (hunchentoot:create-prefix-dispatcher "/css" 'handler/site-css)
        (hunchentoot:create-prefix-dispatcher "/js" 'handler/site-js)
@@ -112,26 +116,27 @@
                                      (:li :class "nav-header" "People")
                                      (:li :class "nav-divider")
                                      (:li (:a :href "#"
-                                              :onclick (ps ((@ liaison loader))
+                                              :onclick (ps ((@ liaison loader) 10)
                                                            false)
                                              "Active within 10 minutes"))
                                      (:li (:a :href "#"
-                                              :onclick (ps ((@ liaison loader))
+                                              :onclick (ps ((@ liaison loader) 30)
                                                            false)
                                              "Active within 30 minutes"))
                                      (:li (:a :href "#"
-                                              :onclick (ps ((@ liaison loader))
+                                              :onclick (ps ((@ liaison loader) 2)
                                                            false)
                                              "Active within 2 hours"))
                                      (:li (:a :href "#"
-                                              :onclick (ps ((@ liaison loader))
+                                              :onclick (ps ((@ liaison loader) 1)
                                                            false)
                                              "Active within 1 day")))))
                             (:ul :class "nav pull-right"
                                  (:li (:a :href "/logout" "Logout"))))
                        (htm
-                         (:li (:a :href "/" (:i :class "icon-home icon-white")))
-                         (:li (:a :href "/login" "Login"))))))))
+                        (:ul :class "nav"
+                             (:a :href "/" :class "brand" "Liaison")
+                             (:li (:a :href "/login" "Login")))))))))
              (htm
               (:script :src "/bs/js/bootstrap.js")
               (:script :src "/js")
@@ -426,19 +431,22 @@
                      ((@ $ each) goog_markers (lambda (idx val)
                                                 ((@ val set-Map) nil)
                                                 true)))
-      loader (lambda ()
-               ((@ $ each) goog_markers (lambda (idx val)
-                                          ((@ val set-Map) nil)
-                                          true))
+      loader (lambda (tval)
+               (let ((timeval (or tval
+                                  "yesterday")))
+                 ((@ $ each) goog_markers (lambda (idx val)
+                                            ((@ val set-Map) nil)
+                                            true))
                                             
-               ((@ $ get-J-S-O-N) "/gather" (lambda (dat)
-                                              ((@ $ each)
-                                               dat
-                                               (lambda (k v)
-                                                 ((@ liaison make_marker)
-                                                  (@ v latitude)
-                                                  (@ v longitude)
-                                                  (@ v uid)))))))
+                 ((@ $ get-J-S-O-N) (concatenate 'string "/gather/" timeval)
+                                    (lambda (dat)
+                                      ((@ $ each)
+                                       dat
+                                       (lambda (k v)
+                                         ((@ liaison make_marker)
+                                          (@ v latitude)
+                                          (@ v longitude)
+                                          (@ v uid))))))))
 
 
       beacon (lambda ()
@@ -466,26 +474,34 @@
                               ((@ liaison init))
                               (set-Interval (@ liaison beacon) 30000)))))
 
-(defun ajax/load-map ()
-  (no-cache)
-  (let* ((cts (chronicity:parse "four days ago"))
+(defun make-date (date-string)
+  (let* ((cts (chronicity:parse date-string :context :past))
          (cts-sec (chronicity:sec-of cts))
          (cts-min (chronicity:minute-of cts))
          (cts-hour (chronicity:hour-of cts))
          (cts-day (chronicity:day-of cts))
          (cts-month (chronicity:month-of cts))
-         (cts-year (chronicity:year-of cts))
-         (mongo-timestamp (date-time cts-sec
-                                     cts-min
-                                     cts-hour
-                                     cts-day
-                                     cts-month
-                                     cts-year))
-         (people (docs (iter (db.find "beacon" :all)))))
-                                      ;; ($
-                                      ;;  ($ "timestamp"
-                                      ;;     ($ "$gte" mongo-timestamp)))
-                                      ;; :limit 20)))))
+         (cts-year (chronicity:year-of cts)))
+    (date-time cts-sec
+               cts-min
+               cts-hour
+               cts-day
+               cts-month
+               cts-year)))
+  
+(defun ajax/load-map ()
+  (no-cache)
+  (let* ((rpath (request-pathname))
+         (datestring (cl-ppcre:regex-replace "gather\/" (format nil "~a" rpath) ""))
+         (dstring (cond ((string= datestring "10") "10 minutes ago")
+                        ((string= datestring "30") "30 minutes ago")
+                        ((string= datestring "2") "2 hours ago")
+                        ((string= datestring "1") "1 day ago")
+                        (t "yesterday")))
+         (mongo-timestamp (make-date dstring))
+         (people (docs (iter (db.find "beacon" ($
+                                                ($ "timestamp"
+                                                   ($ "$gte" mongo-timestamp))) :limit 0)))))
     (w/json
      (jsown:to-json
       (mapcar #'(lambda (person)
