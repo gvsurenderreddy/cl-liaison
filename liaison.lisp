@@ -83,25 +83,55 @@
               (:div :class "navbar navbar-fixed-bottom"
                (:div :class "navbar-inner"
                  (:div :class "container"
-                  (:ul :class "nav"
-                    (if (w/session (session-value :uid))
-                        (htm
-                         (:li (:a :href "/" "Home"))
-                         (:li (:a :href "/logout" "Logout"))
-                         (:li (:a :data-toggle "modal"
-                                  :href "#pmodal"
-                                  "Preferences"))
-                         (:li (:a :href "#"
-                                  :onclick (ps ((@ liaison beacon))
-                                               false)
-                                  "Ping"))
-                          (:li (:a :href "#"
-                                   :onclick (ps ((@ liaison loader))
-                                                false)
-                                   "People")))
-                        (htm
-                         (:li (:a :href "/" "Home"))
-                         (:li (:a :href "/login" "Login")))))))))
+                   (if (w/session (session-value :uid))
+                       (htm (:ul :class "nav"
+                              (:a :href "/" :class "brand" "Liaison")
+                              (:li :class "dropdown"
+                                (:a :href "#"
+                                    :class "dropdown-toggle"
+                                    :data-toggle "dropdown"
+                                    (:i :class "icon-upload icon-white"))
+                                    
+                                (:ul :class "dropdown-menu"
+                                     (:li :class "nav-header" "Options")
+                                     (:li :class "nav-divider")
+                                     (:li (:a :data-toggle "modal"
+                                              :href "#pmodal"
+                                              "Preferences"))
+                                     
+                                     (:li :class "nav-header" "Map Options")
+                                     (:li :class "nav-divider")
+                                     (:li (:a :href "#"
+                                              :onclick (ps ((@ liaison beacon))
+                                                           false)
+                                              "Ping"))
+                                     (:li (:a :href "#"
+                                              :onclick (ps ((@ liaison clearmap))
+                                                           false)
+                                              "Clear The Map"))
+                                     (:li :class "nav-header" "People")
+                                     (:li :class "nav-divider")
+                                     (:li (:a :href "#"
+                                              :onclick (ps ((@ liaison loader))
+                                                           false)
+                                             "Active within 10 minutes"))
+                                     (:li (:a :href "#"
+                                              :onclick (ps ((@ liaison loader))
+                                                           false)
+                                             "Active within 30 minutes"))
+                                     (:li (:a :href "#"
+                                              :onclick (ps ((@ liaison loader))
+                                                           false)
+                                             "Active within 2 hours"))
+                                     (:li (:a :href "#"
+                                              :onclick (ps ((@ liaison loader))
+                                                           false)
+                                             "Active within 1 day")))))
+                            (:ul :class "nav pull-right"
+                                 (:li (:a :href "/logout" "Logout"))))
+                       (htm
+                         (:li (:a :href "/" (:i :class "icon-home icon-white")))
+                         (:li (:a :href "/login" "Login"))))))))
              (htm
               (:script :src "/bs/js/bootstrap.js")
               (:script :src "/js")
@@ -129,99 +159,119 @@
                  (str msg))))))))
 (defun check/email-exists (email)
   (@-q "users" ($ "email" email)))
-
 (defun page/main ()
   (let ((my-uid (u/uid)))
     (no-cache)
     (w/page "Geo"
-          (:script :type "text/javascript"
-                   (str (ps (var goog_markers ([]))
-                            (var goog_map nil))))
-          (:div :class "container"
-                (:div :class "row"
-                      (:div :id "status" "Loading...")
-                      (:div :class "well" :id "canvas"))
-                (:div :id "pmodal" :class "modal hide fade"
-                  (:div :class "modal-header"
-                    (:button :type "button" :class "close" :data-dismiss "modal" "x")
-                    (:h4 "Control Panel"))
-                  (:div :class "modal-body"
+            (:script :type "text/javascript"
+                     (str (ps (var goog_markers ([]))
+                              (var goog_map nil))))
+            (:div :class "container"
+                  (:div :class "row"
+                        (:div :id "status" "Loading...")
+                        (:div :class "well" :id "canvas"))
+                  (:div :id "pmodal" :class "modal hide fade"
+                        (:div :class "modal-header"
+                              (:button :type "button" :class "close" :data-dismiss "modal" "x")
+                              (:h4 "Preferences"))
+                        (:div :class "modal-body"
+                              (:div :class "accordion" :id "cpanel"
+                                    (:div :class "accordion-group"
+                                          (:div :class "accordion-heading"
+                                                (:a :class "accordion-toggle"
+                                                    :data-toggle "collapse"
+                                                    :data-parent "#cpanel"
+                                                    :href "#friends" "Friends"))
+                                          (:div :id "friends"
+                                                :class "accordion-body collapse in"
+                                                (:div :class "accordion-inner"
+                                                      "This is a list of your friends.")))
 
-                    (:div :class "accordion" :id "cpanel"
-
-                      (:div :class "accordion-group"
-                        (:div :class "accordion-heading"
-                          (:a :class "accordion-toggle"
-                              :data-toggle "collapse"
-                              :data-parent "#cpanel"
-                              :href "#friends" "Friends"))
-                        (:div :id "friends"
-                              :class "accordion-body collapse in"
-                          (:div :class "accordion-inner"
-                            "This is a list of your friends.")))
-
-                      (:div :class "accordion-group"
-                        (:div :class "accordion-heading"
-                          (:a :class "accordion-toggle"
-                              :data-toggle "collapse"
-                              :data-parent "#cpanel"
-                              :href "#filters" "Filters"))
-                        (:div :id "filters"
-                              :class "accordion-body collapse"
-                          (:div :class "accordion-inner"
-                            "This is a list of your filters.")))
+                                    (:div :class "accordion-group"
+                                          (:div :class "accordion-heading"
+                                                (:a :class "accordion-toggle"
+                                                    :data-toggle "collapse"
+                                                    :data-parent "#cpanel"
+                                                    :href "#filters" "Filters"))
+                                          (:div :id "filters"
+                                                :class "accordion-body collapse"
+                                                (:div :class "accordion-inner"
+                                                      "This is a list of your filters.")))
 
 
-                      (:div :class "accordion-group"
-                        (:div :class "accordion-heading"
-                          (:a :class "accordion-toggle"
-                              :data-toggle "collapse"
-                              :data-parent "#cpanel"
-                              :href "#prefs" "Preferences"))
-                        (:div :id "prefs"
-                              :class "accordion-body collapse"
-                          (:div :class "accordion-inner"
-                            (:form :class "form-vertical" :method "POST" :action "/preferences"
-                              (:input :type "hidden" :name "uid" :value (str my-uid))
-                              (:h4 "Gender")
-                              (:p (:select :name "gender"
-                               (:option :value "noselect" "Optional, but recommended.")
-                               (:option :value "male" "Female")
-                               (:option :value "female" "Female")
-                               (:option :value "male tg" "Male Transgendered")
-                               (:option :value "female tg" "Female Transgendered")
-                               (:option :value "very male" "Alpha Male")
-                               (:option :value "femmy" "Male, but a little female.")
-                               (:option :value "very female" "Alpha Female")
-                               (:option :value "butchy" "Female, somewhat masculine.")))
-                              (:h4 "Name")
-                              (:p (:input :type "text" :name "name" :placeholder "or pseudonym"))
-                              (:h4 "Age")
-                              (:p (:select :name "age"
-                               (:option :value "18-20" "18-20")
-                               (:option :value "20-25" "20-25")
-                               (:option :value "25-30" "25-30")
-                               (:option :value "30-35" "30-35")
-                               (:option :value "35-40" "35-40")
-                               (:option :value "40-45" "40-45")
-                               (:option :value "45-50" "45-50")
-                               (:option :value "50-55" "50-55")
-                               (:option :value "55-60" "55-60")
-                               (:option :value "60-65" "60-65")
-                               (:option :value "65-70" "65-70")
-                               (:option :value "70+" "70+")))
-                              (:button :class "btn btn-primary" "Save")))))
+                                    (%-agroup :name "Preferences"
+                                              :dataparent "#cpanel"
+                                              :inner (:form :id "prefsform" :class "form-horizontal" :method "POST" :action "/preferences"
+                                                            (:input :type "hidden" :name "uid" :value (str my-uid))
+                                                            (%-cgroup :name "Gender"
+                                                                      :inner (:span (:select :id "gselect" :name "gender"
+                                                                                      (:option :value "noselect" "  ")
+                                                                                      (:option :value "female" "Female")
+                                                                                      (:option :value "male" "Male")
+                                                                                      (:option :value "male tg" "Male Transgendered")
+                                                                                      (:option :value "female tg" "Female Transgendered")
+                                                                                      (:option :value "very male" "Alpha Male")
+                                                                                      (:option :value "femmy" "Male, but a little female.")
+                                                                                      (:option :value "very female" "Alpha Female")
+                                                                                      (:option :value "butchy" "Female, somewhat masculine."))
+                                                                                    (:p :class "help-block" "Not required, but definitely recommended.")))
 
-                      (:div :class "accordion-group"
-                        (:div :class "accordion-heading"
-                          (:a :class "accordion-toggle"
-                              :data-toggle "collapse"
-                              :data-parent "#cpanel"
-                              :href "#devel" "Developer Console"))
-                        (:div :id "devel"
-                              :class "accordion-body collapse"
-                          (:div :class "accordion-inner"
-                            "Developer Controls!"))))))))))
+
+                                                            (%-cgroup :name "Name" :inner (:input :id "pseudonym" :type "text" :name "name" :placeholder "or pseudonym"))
+                                                            (%-cgroup :name "Age" :inner (:select :id "agef" :name "age"
+                                                                                                  (:option :value "18-20" "18-20")
+                                                                                                  (:option :value "20-25" "20-25")
+                                                                                                  (:option :value "25-30" "25-30")
+                                                                                                  (:option :value "30-35" "30-35")
+                                                                                                  (:option :value "35-40" "35-40")
+                                                                                                  (:option :value "40-45" "40-45")
+                                                                                                  (:option :value "45-50" "45-50")
+                                                                                                  (:option :value "50-55" "50-55")
+                                                                                                  (:option :value "55-60" "55-60")
+                                                                                                  (:option :value "60-65" "60-65")
+                                                                                                  (:option :value "65-70" "65-70")
+                                                                                                  (:option :value "70+" "70+")))
+                                                            (:button :class "btn btn-primary" "Save")))
+                                    (:div :class "accordion-group"
+                                          (:div :class "accordion-heading"
+                                                (:a :class "accordion-toggle"
+                                                    :data-toggle "collapse"
+                                                    :data-parent "#cpanel"
+                                                    :href "#devel" "Developer Console"))
+                                          (:div :id "devel"
+                                                :class "accordion-body collapse"
+                                                (:div :class "accordion-inner"
+                                                      "Developer Controls!"))))))))))
+
+
+(defun %-r-eid ()
+  "Build a random string to use as an HTML element id."
+  (let* ((tid (string (gensym)))
+        (dp (concatenate 'string "#" tid)))
+    (list tid dp)))
+(defmacro %-agroup (&key name dataparent inner)
+  (let ((the-inner-div (%-r-eid)))
+    `(htm (:div :class "accordion-group"
+            (:div :class "accordion-heading"
+              (:a :class "accordion-toggle"
+                  :data-toggle "collapse"
+                  :data-parent ,dataparent
+                  :href ,(second the-inner-div) ,name))
+            (:div :id ,(car the-inner-div)
+                  :class "accordion-body collapse"
+                  (:div :class "accordion-inner"
+                        ,inner))))))
+(defmacro %-cgroup (&key name inner targetid)
+  (let ((target-id (or targetid
+                       (second (%-r-eid))))
+        (the-inner (or inner
+                       (htm (:div "Nothing sent for inner html!")))))
+                       
+    `(htm (:div :class "control-group"
+          (:label :class "control-label" :for ,target-id ,name)
+          (:div :class "controls"
+            ,the-inner)))))
+            
 
 (defun hash-password (pas)
   (ironclad:byte-array-to-hex-string
@@ -372,6 +422,10 @@
                     ((@ goog_markers push) mk)
                     true)
 
+      clearmap (lambda ()
+                     ((@ $ each) goog_markers (lambda (idx val)
+                                                ((@ val set-Map) nil)
+                                                true)))
       loader (lambda ()
                ((@ $ each) goog_markers (lambda (idx val)
                                           ((@ val set-Map) nil)
@@ -427,11 +481,11 @@
                                      cts-day
                                      cts-month
                                      cts-year))
-         (people (docs (iter (db.find "beacon"
-                                      ($
-                                       ($ "timestamp"
-                                          ($ "$gte" mongo-timestamp)))
-                                      :limit 20)))))
+         (people (docs (iter (db.find "beacon" :all)))))
+                                      ;; ($
+                                      ;;  ($ "timestamp"
+                                      ;;     ($ "$gte" mongo-timestamp)))
+                                      ;; :limit 20)))))
     (w/json
      (jsown:to-json
       (mapcar #'(lambda (person)
@@ -463,3 +517,51 @@
              (db.save "beacon" new-doc)
              (w/json "{result:'true'}"))
            (w/json "{result:'failed'}"))))))
+
+
+
+
+
+
+                                    ;; (:div :class "accordion-group"
+                                    ;;       (:div :class "accordion-heading"
+                                    ;;             (:a :class "accordion-toggle"
+                                    ;;                 :data-toggle "collapse"
+                                    ;;                 :data-parent "#cpanel"
+                                    ;;                 :href "#prefs" "Preferences"))
+                                    ;;       (:div :id "prefs"
+                                    ;;             :class "accordion-body collapse"
+                                    ;;             (:div :class "accordion-inner"
+                                    ;;                   (:form :id "prefsform" :class "form-horizontal" :method "POST" :action "/preferences"
+                                    ;;                          (:input :type "hidden" :name "uid" :value (str my-uid))
+                                    ;;                          (%-cgroup :name "Gender" :inner (:div :class "control-group"
+                                    ;;                                                                (:label :class "control-label" :for  "gselect" "Gender")
+                                    ;;                                                                (:div :class "controls"
+                                    ;;                                                                      (:select :id "gselect" :name "gender"
+                                    ;;                                                                               (:option :value "noselect" "  ")
+                                    ;;                                                                               (:option :value "female" "Female")
+                                    ;;                                                                               (:option :value "male" "Male")
+                                    ;;                                                                               (:option :value "male tg" "Male Transgendered")
+                                    ;;                                                                               (:option :value "female tg" "Female Transgendered")
+                                    ;;                                                                               (:option :value "very male" "Alpha Male")
+                                    ;;                                                                               (:option :value "femmy" "Male, but a little female.")
+                                    ;;                                                                               (:option :value "very female" "Alpha Female")
+                                    ;;                                                                               (:option :value "butchy" "Female, somewhat masculine."))
+                                    ;;                                                                      (:p :class "help-block"
+                                    ;;                                                                          "Not required, but definitely recommended."))))
+                                    ;;                          (%-cgroup :name "Name" :inner (:input :id "pseudonym" :type "text" :name "name" :placeholder "or pseudonym"))
+                                    ;;                          (%-cgroup :name "Age" :inner (:select :id "agef" :name "age"
+                                    ;;                                                                (:option :value "18-20" "18-20")
+                                    ;;                                                                (:option :value "20-25" "20-25")
+                                    ;;                                                                (:option :value "25-30" "25-30")
+                                    ;;                                                                (:option :value "30-35" "30-35")
+                                    ;;                                                                (:option :value "35-40" "35-40")
+                                    ;;                                                                (:option :value "40-45" "40-45")
+                                    ;;                                                                (:option :value "45-50" "45-50")
+                                    ;;                                                                (:option :value "50-55" "50-55")
+                                    ;;                                                                (:option :value "55-60" "55-60")
+                                    ;;                                                                (:option :value "60-65" "60-65")
+                                    ;;                                                                (:option :value "65-70" "65-70")
+                                    ;;                                                                (:option :value "70+" "70+")))
+
+
