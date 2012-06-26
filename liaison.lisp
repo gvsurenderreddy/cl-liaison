@@ -127,7 +127,11 @@
    (ironclad:digest-sequence :sha256
     (ironclad:ascii-string-to-byte-array pas))))
 (defun page/main ()
+  (no-cache)
   (w/page "Geo"
+          (:script :type "text/javascript"
+                   (str (ps (var goog_markers ([]))
+                            (var goog_map nil))))
      (:div :class "container"
        (:div :class "row"
          (:div :id "status" "Loading...")
@@ -248,6 +252,7 @@
   (css-lite:css
     ((:body) (:margin-bottom "0px"))))
 (defun ajax/load-map ()
+  (no-cache)
   (let* ((cts (chronicity:parse "30 minutes ago"))
          (cts-sec (chronicity:sec-of cts))
          (cts-min (chronicity:minute-of cts))
@@ -261,9 +266,10 @@
                                      cts-day
                                      cts-month
                                      cts-year))
-         (people (docs (iter (db.find "beacon"
-                                      ($ "timestamp"
-                                         ($ "$gte" mongo-timestamp)) :limit 0)))))
+         (people (docs (iter (db.find "beacon" ($
+                                                ($ "timestamp"
+                                                   ($ "$gte" mongo-timestamp)))
+                                      :limit 0)))))
     (w/ajax
      (jsown:to-json
       (mapcar #'(lambda (person)
@@ -276,46 +282,21 @@
                          (get-element "uid" person))))
              people)))))
 (defun handler/site-js ()
+  (no-cache)
   (setf (hunchentoot:content-type*) "text/javascript")
   (ps
     (var
      liaison
      (create
+
       init (lambda ()
              (if navigator.geolocation
-                 (navigator.geolocation.get-Current-Position liaison.init_success
-                                                           liaison.init_error)))
-      make_marker (lambda (lat lon the_title)
-                    (var mk (new ((@ google maps -Marker)
-                                  (create
-                                   position (new ((@ google maps -Lat-Lng) lat lon))
-                                   map goog_map
-                                   title the_title))))
-                    ;((@ goog_markers push) mk)
-                    true)
-      loader (lambda ()
-               ((@ $ get-J-S-O-N) "/gather" (lambda (dat)
-                                              ((@ $ each)
-                                               dat
-                                               (lambda (k v)
-                                                 ((@ liaison make_marker)
-                                                  (@ v latitude)
-                                                  (@ v longitude)
-                                                  (@ v uid)))))))
-      beacon (lambda ()
-               (and (@ navigator geolocation)
-                    ((@ navigator geolocation get-Current-Position)
-                      (@ liaison success)
-                      (@ liaison failure))))
-      success (lambda (pos)
-                ((@ $ ajax) (create
-                             type "POST"
-                             url "/beacon"
-                             data (create position pos)))
-                true)
-      failure (lambda ()
+                 ((@ navigator geolocation get-Current-Position)
+                  (@ liaison isuccess)
+                  (@ liaison ierror))))
+      ifailure (lambda ()
                 nil)
-      init_success (lambda (pos)
+      isuccess (lambda (pos)
                      ((@ ($ "#status") toggle))
                      (setf goog_pos  (new ((@ google maps -Lat-Lng)
                                           (@ pos coords latitude)
@@ -325,10 +306,60 @@
                                           (create center goog_pos
                                                  zoom 15
                                                  map-Type-Id (@ google maps -Map-Type-Id -R-O-A-D-M-A-P)))))
-                     true)))
+                     true)
+
+
+
+      make_marker (lambda (lat lon the_title)
+                    (var mk (new ((@ google maps -Marker)
+                                  (create
+                                   position (new ((@ google maps -Lat-Lng) lat lon))
+                                   shape (create coord (array 1 1 1 20 18 20 18 1)
+                                                 type "poly")
+                                   image ((@ liaison mkimage))
+                                   ; shadow ((@ liaison mkshadow))
+                                   map goog_map
+                                   title the_title))))
+                    ((@ goog_markers push) mk)
+                    true)
+
+      loader (lambda ()
+               ((@ $ each) goog_markers (lambda (idx val)
+                                          ((@ val set-Map) nil)
+                                          true))
+                                            
+               ((@ $ get-J-S-O-N) "/gather" (lambda (dat)
+                                              ((@ $ each)
+                                               dat
+                                               (lambda (k v)
+                                                 ((@ liaison make_marker)
+                                                  (@ v latitude)
+                                                  (@ v longitude)
+                                                  (@ v uid)))))))
+
+
+      beacon (lambda ()
+               (and (@ navigator geolocation)
+                    ((@ navigator geolocation get-Current-Position)
+                     (lambda (pos)
+                       ((@ $ ajax) (create
+                                    type "POST"
+                                    url "/beacon"
+                                    data (create position pos)))
+                       true)
+                     (lambda () false))))
+      mkimage (lambda ()
+               (new ((@ google maps -Marker-Image) "images/beachflag.png"
+                     (new ((@ google maps -Size) 20 32))
+                     (new ((@ google maps -Point) 0 0))
+                     (new ((@ google maps -Point) 0 32)))))
+      mkshadow (lambda ()
+                 (new ((@ google maps -Marker-Image) "images/beachflag_shadow.png"
+                       (new ((@ google maps -Size) 37 32))
+                       (new ((@ google maps -Point) 0 0))
+                       (new ((@ google maps -Point) 0 32)))))))
+    
     ((@ ($ document) ready) (lambda ()
-                              (var goog_map nil)
-                              (var goog_markers (array))
                               ((@ liaison init))
-                              ((chain ((@ liaison delay) 1000) loader))))))
+                              (set-Interval (@ liaison beacon) 30000)))))
 
