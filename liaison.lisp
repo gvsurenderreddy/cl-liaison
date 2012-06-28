@@ -16,17 +16,11 @@
        (hunchentoot:create-prefix-dispatcher "/login" 'handler/login)
        (hunchentoot:create-prefix-dispatcher "/logout" 'handler/logout)
        (hunchentoot:create-prefix-dispatcher "/register" 'handler/register)
-
        (hunchentoot:create-prefix-dispatcher "/beacon" 'ajax/beacon)
        (hunchentoot:create-prefix-dispatcher "/gather" 'ajax/load-map)
-       ;; (hunchentoot:create-prefix-dispatcher "/gather/yesterday" '(ajax/load-map "10 minutes ago")))
-       ;; (hunchentoot:create-prefix-dispatcher "/gather/30" '(ajax/load-map "30 minutes ago"))
-       ;; (hunchentoot:create-prefix-dispatcher "/gather/2" '(ajax/load-map "2 hours ago"))
-       ;; (hunchentoot:create-prefix-dispatcher "/gather/1" '(ajax/load-map "1 day ago"))
-
+       (hunchentoot:create-prefix-dispatcher "/iw" 'ajax/info-window)
        (hunchentoot:create-prefix-dispatcher "/css" 'handler/site-css)
        (hunchentoot:create-prefix-dispatcher "/js" 'handler/site-js)
-
        (hunchentoot:create-regex-dispatcher "^/$" 'page/main)))
 
 (defun srv/start (&key (port 8082))
@@ -51,8 +45,8 @@
      (if user-doc
          ,@body
          (hunchentoot:redirect "/login"))))
-(defmacro @-q (collection query)
-  `(docs (iter (db.find ,collection ,query :limit 0))))
+(defmacro @-q (collection query &optional args)
+  `(docs (iter (db.find ,collection ,query ,@args))))
 (defmacro @-> (name)
   `(hunchentoot:parameter ,name))
 (defmacro re/kill (pattern target)
@@ -128,9 +122,17 @@
                                                            false)
                                              "Active within 2 hours"))
                                      (:li (:a :href "#"
+                                              :onclick (ps ((@ liaison loader) 5)
+                                                           false)
+                                             "Active within 5 hours"))
+                                     (:li (:a :href "#"
                                               :onclick (ps ((@ liaison loader) 1)
                                                            false)
-                                             "Active within 1 day")))))
+                                             "Active within 1 day"))
+                                     (:li (:a :href "#"
+                                              :onclick (ps ((@ liaison loader) 6)
+                                                           false)
+                                             "Active within 5 day")))))
                             (:ul :class "nav pull-right"
                                  (:li (:a :href "/logout" "Logout"))))
                        (htm
@@ -276,7 +278,6 @@
           (:label :class "control-label" :for ,target-id ,name)
           (:div :class "controls"
             ,the-inner)))))
-            
 
 (defun hash-password (pas)
   (ironclad:byte-array-to-hex-string
@@ -309,8 +310,8 @@
              (let* ((the-pass (@-> "password"))
                     (the-email (@-> "email"))
                     (the-doc (car (@-q "users" ($ ($ "email" the-email)
-                                             ($ "password"
-                                                (hash-password the-pass)))))))
+                                                  ($ "password"
+                                                     (hash-password the-pass)))))))
                (if the-doc
                    (w/session
                     (setf (session-value :uid )
@@ -414,16 +415,22 @@
 
 
 
-      make_marker (lambda (lat lon the_title)
+      make_marker (lambda (lat lon owner)
                     (var mk (new ((@ google maps -Marker)
                                   (create
                                    position (new ((@ google maps -Lat-Lng) lat lon))
                                    shape (create coord (array 1 1 1 20 18 20 18 1)
                                                  type "poly")
-                                   image ((@ liaison mkimage))
+                                   ;image ((@ liaison mkimage))
                                    ; shadow ((@ liaison mkshadow))
                                    map goog_map
-                                   title the_title))))
+                                   title owner))))
+                    ;(var iw-content ((@ $ get) (concatenate 'string "/iw/" owner) (lambda (x)
+;                                                                                       x)))
+;                    (var iw (new ((@ google maps -Info-Window)
+;                                  (create content (@ iw-content response-Text)))))
+                    ;; ((@ google maps event add-Listener) mk "click" (lambda ()
+                    ;;  ((@ iw.open) goog_map mk)))
                     ((@ goog_markers push) mk)
                     true)
 
@@ -464,31 +471,68 @@
                      (new ((@ google maps -Size) 20 32))
                      (new ((@ google maps -Point) 0 0))
                      (new ((@ google maps -Point) 0 32)))))))
-      ;; mkshadow (lambda ()
-      ;;            (new ((@ google maps -Marker-Image) "images/beachflag_shadow.png"
-      ;;                  (new ((@ google maps -Size) 37 32))
-      ;;                  (new ((@ google maps -Point) 0 0))
-      ;;                  (new ((@ google maps -Point) 0 32)))))))
-    
     ((@ ($ document) ready) (lambda ()
                               ((@ liaison init))
+                              (set-Timeout (lambda () ((@ liaison loader))) 2000)
                               (set-Interval (@ liaison beacon) 30000)))))
 
-(defun make-date (date-string)
-  (let* ((cts (chronicity:parse date-string :context :past))
-         (cts-sec (chronicity:sec-of cts))
-         (cts-min (chronicity:minute-of cts))
-         (cts-hour (chronicity:hour-of cts))
-         (cts-day (chronicity:day-of cts))
-         (cts-month (chronicity:month-of cts))
-         (cts-year (chronicity:year-of cts)))
-    (date-time cts-sec
-               cts-min
-               cts-hour
-               cts-day
-               cts-month
-               cts-year)))
-  
+;; (defun make-date (date-string)
+;;   (let* ((cts (chronicity:parse date-string :context :past))
+;;          (cts-sec (chronicity:sec-of cts))
+;;          (cts-min (chronicity:minute-of cts))
+;;          (cts-hour (chronicity:hour-of cts))
+;;          (cts-day (chronicity:day-of cts))
+;;          (cts-month (chronicity:month-of cts))
+;;          (cts-year (chronicity:year-of cts)))
+;;     (date-time cts-sec
+;;                cts-min
+;;                cts-hour
+;;                cts-day
+;;                cts-month
+;;                cts-year)))
+
+(defun db-get-active-uids ()
+  (get-element "values"
+     (car (docs (iter (db.distinct "beacon" "uid"))))))
+
+(defun db-latest-from-user (uid)
+  (car (docs (iter (db.sort "beacon" ($ "uid" uid)
+                       :limit 1
+                       :field "timestamp")))))
+
+(defun db-email-from-uid (uid)
+  (get-element "email"
+               (car (docs (iter (db.find "users" ($ "uid" uid)))))))
+
+(defun $-replace (pat buf)
+  (cl-ppcre:regex-replace pat (format nil "~a" buf) ""))
+
+(defun ajax/load-public-map ()
+  (no-cache)
+  (let* ((owners (get-element "values" (car (docs (db.distinct "beacon" "owner")))))
+         (records (mapcar (lambda (x)
+                            (let ((tval (car (docs (iter (db.sort "beacon" ($ "owner" x)
+                                                                  :limit 1
+                                                                  :field "timestamp")))))
+                                  (the-email (db-email-from-uid x)))
+                              (add-element "email" the-email tval)
+                              tval))
+                          owners)))
+
+    (w/json
+     (jsown:to-json
+      (mapcar #'(lambda (x)
+                  (let ((po (empty-object)))
+                    (mapcar (lambda (kk)
+                              (setf (jsown:val po kk) (format nil "~a" (get-element kk x))))
+                            '("uid" "timestamp" "email" "longitude" "latitude"))
+                    po))
+              records)))))
+
+(defun dbg-count-since-date (date)
+  (let* ((the-date (make-date date)))
+    (get-element "n" (car (docs (iter (db.count "beacon" ($ ($ "timestamp" ($ "$lte" the-date))))))))))
+                                                    
 (defun ajax/load-map ()
   (no-cache)
   (let* ((rpath (request-pathname))
@@ -496,23 +540,24 @@
          (dstring (cond ((string= datestring "10") "10 minutes ago")
                         ((string= datestring "30") "30 minutes ago")
                         ((string= datestring "2") "2 hours ago")
+                        ((string= datestring "5") "5 hours ago")
                         ((string= datestring "1") "1 day ago")
+                        ((string= datestring "6") "5 days ago")
                         (t "yesterday")))
          (mongo-timestamp (make-date dstring))
-         (people (docs (iter (db.find "beacon" ($
-                                                ($ "timestamp"
-                                                   ($ "$gte" mongo-timestamp))) :limit 0)))))
+         (people (docs (iter (db.sort "beacon" ($ ($ "timestamp" ($ "$lte" mongo-timestamp)))
+                                      ;:limit 1
+                                      :field "timestamp")))))
     (w/json
      (jsown:to-json
       (mapcar #'(lambda (person)
                  (let ((po (empty-object)))
-                   (setf (jsown:val po "latitude")
-                         (get-element "latitude" person))
-                   (setf (jsown:val po "longitude")
-                         (get-element "longitude" person))
-                   (setf (jsown:val po "uid")
-                         (get-element "uid" person))))
+                   (setf (jsown:val po "latitude") (get-element "latitude" person))
+                   (setf (jsown:val po "longitude") (get-element "longitude" person))
+                   (setf (jsown:val po "uid") (get-element "uid" person))
+                   (setf (jsown:val po "owner") (get-element "owner" person))))
              people)))))
+
 (defun ajax/beacon ()
   (w/logged-in
    (labels ((normalize-name (f)
@@ -520,7 +565,8 @@
                  (re/kill "coords"
                      (re/kill "\\]+|\\[+" f)))))
      (let* ((new-doc (make-document))
-            (my-uid (w/session (u/uid)))
+            (my-owner (w/session (u/uid)))
+            (my-uid (unique-id))
             (all-keys (hunchentoot:post-parameters*)))
        (if (< 0 (length all-keys))
            (progn
@@ -528,56 +574,38 @@
                 do (progn
                      (or (string= b "null")
                          (add-element (normalize-name a) b new-doc))))
+             (add-element "owner" my-owner new-doc)
              (add-element "uid" my-uid new-doc)
-             (add-element "timestamp" (cl-mongo:now) new-doc)
+             (add-element "timestamp" (epoch) new-doc)
              (db.save "beacon" new-doc)
              (w/json "{result:'true'}"))
            (w/json "{result:'failed'}"))))))
 
+(defun ajax/info-window ()
+  (let ((uid ($-replace "iw\/" (request-pathname))))
+    (w/json
+     uid)))
 
 
 
 
-
-                                    ;; (:div :class "accordion-group"
-                                    ;;       (:div :class "accordion-heading"
-                                    ;;             (:a :class "accordion-toggle"
-                                    ;;                 :data-toggle "collapse"
-                                    ;;                 :data-parent "#cpanel"
-                                    ;;                 :href "#prefs" "Preferences"))
-                                    ;;       (:div :id "prefs"
-                                    ;;             :class "accordion-body collapse"
-                                    ;;             (:div :class "accordion-inner"
-                                    ;;                   (:form :id "prefsform" :class "form-horizontal" :method "POST" :action "/preferences"
-                                    ;;                          (:input :type "hidden" :name "uid" :value (str my-uid))
-                                    ;;                          (%-cgroup :name "Gender" :inner (:div :class "control-group"
-                                    ;;                                                                (:label :class "control-label" :for  "gselect" "Gender")
-                                    ;;                                                                (:div :class "controls"
-                                    ;;                                                                      (:select :id "gselect" :name "gender"
-                                    ;;                                                                               (:option :value "noselect" "  ")
-                                    ;;                                                                               (:option :value "female" "Female")
-                                    ;;                                                                               (:option :value "male" "Male")
-                                    ;;                                                                               (:option :value "male tg" "Male Transgendered")
-                                    ;;                                                                               (:option :value "female tg" "Female Transgendered")
-                                    ;;                                                                               (:option :value "very male" "Alpha Male")
-                                    ;;                                                                               (:option :value "femmy" "Male, but a little female.")
-                                    ;;                                                                               (:option :value "very female" "Alpha Female")
-                                    ;;                                                                               (:option :value "butchy" "Female, somewhat masculine."))
-                                    ;;                                                                      (:p :class "help-block"
-                                    ;;                                                                          "Not required, but definitely recommended."))))
-                                    ;;                          (%-cgroup :name "Name" :inner (:input :id "pseudonym" :type "text" :name "name" :placeholder "or pseudonym"))
-                                    ;;                          (%-cgroup :name "Age" :inner (:select :id "agef" :name "age"
-                                    ;;                                                                (:option :value "18-20" "18-20")
-                                    ;;                                                                (:option :value "20-25" "20-25")
-                                    ;;                                                                (:option :value "25-30" "25-30")
-                                    ;;                                                                (:option :value "30-35" "30-35")
-                                    ;;                                                                (:option :value "35-40" "35-40")
-                                    ;;                                                                (:option :value "40-45" "40-45")
-                                    ;;                                                                (:option :value "45-50" "45-50")
-                                    ;;                                                                (:option :value "50-55" "50-55")
-                                    ;;                                                                (:option :value "55-60" "55-60")
-                                    ;;                                                                (:option :value "60-65" "60-65")
-                                    ;;                                                                (:option :value "65-70" "65-70")
-                                    ;;                                                                (:option :value "70+" "70+")))
+;; (defun PATCH-fix-db-1 ()
+;;   (mapcar #'(lambda (x)
+;;               (or (get-element "owner" x)
+;;                   (let ((the-uid (get-element "uid" x))
+;;                         (new-uid (unique-id)))
+;;                     (add-element "uid" new-uid x)
+;;                     (add-element "owner" the-uid x)
+;;                     (db.save "beacon" x))))
+;;           (docs (iter (db.find "beacon" :all)))))
 
 
+
+(defun epoch ()
+  (let ((unix-epoch-difference (encode-universal-time 0 0 0 1 1 1970 0))
+        (univ-time (get-universal-time)))
+    (defun universal-to-unix-time (universal-time)
+      (- universal-time unix-epoch-difference))
+    (defun get-unix-time ()
+      (universal-to-unix-time univ-time))
+    (get-unix-time)))
