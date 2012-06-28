@@ -6,6 +6,7 @@
         #:cl-mongo
         #:hunchentoot
         #:jsown
+        #:lparallel
         #:parenscript)
   (:export #:srv/start
            #:srv/stop))

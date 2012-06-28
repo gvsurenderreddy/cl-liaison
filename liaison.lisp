@@ -1,8 +1,5 @@
-;;;; liaison.lisp
 
 (in-package #:liaison)
-
-;;; "liaison" goes here. Hacks and glory await!
 
 (defparameter *site-acceptor* nil)
 (defparameter *dispatch-table* nil)
@@ -17,8 +14,7 @@
        (hunchentoot:create-prefix-dispatcher "/logout" 'handler/logout)
        (hunchentoot:create-prefix-dispatcher "/register" 'handler/register)
        (hunchentoot:create-prefix-dispatcher "/beacon" 'ajax/beacon)
-       (hunchentoot:create-prefix-dispatcher "/gather" 'ajax/load-map)
-       (hunchentoot:create-prefix-dispatcher "/iw" 'ajax/info-window)
+       (hunchentoot:create-prefix-dispatcher "/gather" 'ajax/load-public-map)
        (hunchentoot:create-prefix-dispatcher "/css" 'handler/site-css)
        (hunchentoot:create-prefix-dispatcher "/js" 'handler/site-js)
        (hunchentoot:create-regex-dispatcher "^/$" 'page/main)))
@@ -150,9 +146,6 @@
 (defun w/json (msg)
   (setf (hunchentoot:content-type*) "application/json")
   msg)
-(defun unique-id ()
-  (format nil "~a"
-    (uuid:make-v4-uuid)))
 (defun dialog-set (m)
   (w/session (setf (session-value :status) m)))
 (defun dialog-msg ()
@@ -251,13 +244,14 @@
                                                       "Developer Controls!"))))))))))
 
 
-(defun %-r-eid ()
+(defun %-random-element-id ()
   "Build a random string to use as an HTML element id."
   (let* ((tid (string (gensym)))
-        (dp (concatenate 'string "#" tid)))
+         (dp (concatenate 'string "#" tid)))
     (list tid dp)))
+
 (defmacro %-agroup (&key name dataparent inner)
-  (let ((the-inner-div (%-r-eid)))
+  (let ((the-inner-div (%-random-element-id)))
     `(htm (:div :class "accordion-group"
             (:div :class "accordion-heading"
               (:a :class "accordion-toggle"
@@ -270,7 +264,7 @@
                         ,inner))))))
 (defmacro %-cgroup (&key name inner targetid)
   (let ((target-id (or targetid
-                       (second (%-r-eid))))
+                       (second (%-random-element-id))))
         (the-inner (or inner
                        (htm (:div "Nothing sent for inner html!")))))
                        
@@ -279,10 +273,24 @@
           (:div :class "controls"
             ,the-inner)))))
 
+(defun $-replace (pat buf)
+  (cl-ppcre:regex-replace pat (format nil "~a" buf) ""))
 (defun hash-password (pas)
   (ironclad:byte-array-to-hex-string
    (ironclad:digest-sequence :sha256
     (ironclad:ascii-string-to-byte-array pas))))
+(defun epoch ()
+  (let ((unix-epoch-difference (encode-universal-time 0 0 0 1 1 1970 0))
+        (univ-time (get-universal-time)))
+    (defun universal-to-unix-time (universal-time)
+      (- universal-time unix-epoch-difference))
+    (defun get-unix-time ()
+      (universal-to-unix-time univ-time))
+    (get-unix-time)))
+(defun unique-id ()
+  (format nil "~a"
+    (uuid:make-v4-uuid)))
+
 (defun handler/login ()
   (labels ((login-page ()
              (w/page "Login"
@@ -415,22 +423,22 @@
 
 
 
-      make_marker (lambda (lat lon owner)
+      make_marker (lambda (ujs)
                     (var mk (new ((@ google maps -Marker)
                                   (create
-                                   position (new ((@ google maps -Lat-Lng) lat lon))
+                                   position (new ((@ google maps -Lat-Lng) (@ ujs latitude) (@ ujs longitude)))
                                    shape (create coord (array 1 1 1 20 18 20 18 1)
                                                  type "poly")
                                    ;image ((@ liaison mkimage))
                                    ; shadow ((@ liaison mkshadow))
                                    map goog_map
-                                   title owner))))
-                    ;(var iw-content ((@ $ get) (concatenate 'string "/iw/" owner) (lambda (x)
-;                                                                                       x)))
-;                    (var iw (new ((@ google maps -Info-Window)
-;                                  (create content (@ iw-content response-Text)))))
-                    ;; ((@ google maps event add-Listener) mk "click" (lambda ()
-                    ;;  ((@ iw.open) goog_map mk)))
+                                   title (@ ujs uid)))))
+                    ;; (var iw-content ((@ $ get) (concatenate 'string "/iw/" owner) (lambda (x)
+                    ;;                                                                    x)))
+                    (var iw (new ((@ google maps -Info-Window)
+                                  (create content (@ ujs email))))) ;iw-content response-Text)))))
+                    ((@ google maps event add-Listener) mk "click" (lambda ()
+                                                                     ((@ iw.open) goog_map mk)))
                     ((@ goog_markers push) mk)
                     true)
 
@@ -450,10 +458,10 @@
                                       ((@ $ each)
                                        dat
                                        (lambda (k v)
-                                         ((@ liaison make_marker)
-                                          (@ v latitude)
-                                          (@ v longitude)
-                                          (@ v uid))))))))
+                                         ((@ liaison make_marker) v)))))))
+                                          ;; (@ v latitude)
+                                          ;; (@ v longitude)
+                                          ;; (@ v uid))))))))
 
 
       beacon (lambda ()
@@ -476,47 +484,28 @@
                               (set-Timeout (lambda () ((@ liaison loader))) 2000)
                               (set-Interval (@ liaison beacon) 30000)))))
 
-;; (defun make-date (date-string)
-;;   (let* ((cts (chronicity:parse date-string :context :past))
-;;          (cts-sec (chronicity:sec-of cts))
-;;          (cts-min (chronicity:minute-of cts))
-;;          (cts-hour (chronicity:hour-of cts))
-;;          (cts-day (chronicity:day-of cts))
-;;          (cts-month (chronicity:month-of cts))
-;;          (cts-year (chronicity:year-of cts)))
-;;     (date-time cts-sec
-;;                cts-min
-;;                cts-hour
-;;                cts-day
-;;                cts-month
-;;                cts-year)))
-
 (defun db-get-active-uids ()
   (get-element "values"
-     (car (docs (iter (db.distinct "beacon" "uid"))))))
-
+     (car (docs (iter (db.distinct "beacon" "owner"))))))
 (defun db-latest-from-user (uid)
-  (car (docs (iter (db.sort "beacon" ($ "uid" uid)
+  (car (docs (iter (db.sort "beacon" ($ "owner" uid)
                        :limit 1
                        :field "timestamp")))))
-
 (defun db-email-from-uid (uid)
   (get-element "email"
                (car (docs (iter (db.find "users" ($ "uid" uid)))))))
 
-(defun $-replace (pat buf)
-  (cl-ppcre:regex-replace pat (format nil "~a" buf) ""))
-
 (defun ajax/load-public-map ()
   (no-cache)
-  (let* ((owners (get-element "values" (car (docs (db.distinct "beacon" "owner")))))
+  (let* ((owners (db-get-active-uids))
          (records (mapcar (lambda (x)
-                            (let ((tval (car (docs (iter (db.sort "beacon" ($ "owner" x)
-                                                                  :limit 1
-                                                                  :field "timestamp")))))
+                            (let ((tval (db-latest-from-user x))
                                   (the-email (db-email-from-uid x)))
-                              (add-element "email" the-email tval)
-                              tval))
+                              (if tval
+                                  (progn
+                                    (add-element "email" the-email tval)
+                                    tval)
+                                  nil)))
                           owners)))
 
     (w/json
@@ -529,10 +518,6 @@
                     po))
               records)))))
 
-(defun dbg-count-since-date (date)
-  (let* ((the-date (make-date date)))
-    (get-element "n" (car (docs (iter (db.count "beacon" ($ ($ "timestamp" ($ "$lte" the-date))))))))))
-                                                    
 (defun ajax/load-map ()
   (no-cache)
   (let* ((rpath (request-pathname))
@@ -551,13 +536,14 @@
     (w/json
      (jsown:to-json
       (mapcar #'(lambda (person)
-                 (let ((po (empty-object)))
+                 (let ((po (empty-object))
+                       (urecord (car (@-q "users" ($ "uid" person)))))
                    (setf (jsown:val po "latitude") (get-element "latitude" person))
                    (setf (jsown:val po "longitude") (get-element "longitude" person))
                    (setf (jsown:val po "uid") (get-element "uid" person))
-                   (setf (jsown:val po "owner") (get-element "owner" person))))
-             people)))))
-
+                   (setf (jsown:val po "owner") (get-element "owner" person))
+                   (setf (jsown:val po "name") (get-element "email" urecord))))
+              people)))))
 (defun ajax/beacon ()
   (w/logged-in
    (labels ((normalize-name (f)
@@ -581,31 +567,12 @@
              (w/json "{result:'true'}"))
            (w/json "{result:'failed'}"))))))
 
-(defun ajax/info-window ()
-  (let ((uid ($-replace "iw\/" (request-pathname))))
-    (w/json
-     uid)))
 
 
 
 
-;; (defun PATCH-fix-db-1 ()
-;;   (mapcar #'(lambda (x)
-;;               (or (get-element "owner" x)
-;;                   (let ((the-uid (get-element "uid" x))
-;;                         (new-uid (unique-id)))
-;;                     (add-element "uid" new-uid x)
-;;                     (add-element "owner" the-uid x)
-;;                     (db.save "beacon" x))))
-;;           (docs (iter (db.find "beacon" :all)))))
-
-
-
-(defun epoch ()
-  (let ((unix-epoch-difference (encode-universal-time 0 0 0 1 1 1970 0))
-        (univ-time (get-universal-time)))
-    (defun universal-to-unix-time (universal-time)
-      (- universal-time unix-epoch-difference))
-    (defun get-unix-time ()
-      (universal-to-unix-time univ-time))
-    (get-unix-time)))
+(defun dbg-count-since-date (date)
+  (let* ((the-date (make-date date)))
+    (get-element "n"
+                 (car (docs (iter (db.count "beacon" ($ ($ "timestamp"
+                                                           ($ "$gte" the-date))))))))))

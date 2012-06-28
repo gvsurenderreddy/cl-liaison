@@ -7,6 +7,7 @@
   :license "Specify license here"
   :depends-on (#:hunchentoot
                #:cl-who
+               #:lparallel
                #:parenscript
                #:css-lite
                #:uuid
