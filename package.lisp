@@ -9,4 +9,5 @@
         #:lparallel
         #:parenscript)
   (:export #:srv/start
-           #:srv/stop))
+           #:srv/stop)
+  (:shadow #:chain))
