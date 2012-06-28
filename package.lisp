@@ -10,4 +10,4 @@
         #:parenscript)
   (:export #:srv/start
            #:srv/stop)
-  (:shadow #:chain))
+  (:shadowing-import-from #:lparallel #:chain))
