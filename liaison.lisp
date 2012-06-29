@@ -63,7 +63,7 @@
        (:title ,title)
        (:link :type "text/css" :rel "stylesheet" :href "/bs/css/bootstrap.css")
        (:link :type "text/css" :rel "stylesheet" :href "http://fonts.googleapis.com/css?family=Anonymous+Pro|Cantarell|Ubuntu|Ubuntu+Mono")
-       (:link :type "text/css" :rel "stylesheet" :href "/liaison.css")
+       ;(:link :type "text/css" :rel "stylesheet" :href "/liaison.css")
        (:link :type "text/css" :rel "stylesheet" :href "/css")
        (:link :rel "shortcut icon" :href "/favicon.ico")
        (:link :rel "apple-touch-icon" :href "/bs/images/apple-touch-icon.png")
@@ -72,15 +72,12 @@
        (:script :type "text/javascript" :src "/jquery-min.js")
        (:script (ps (defvar goog_map nil)
                     (defvar goog_markers nil))))
-      (:body :style "padding-top: 10px;"
-             ,@body
-             (dialog-msg)
-             (htm
-              (:div :class "navbar navbar-fixed-top"
-               (:div :class "navbar-inner"
-                 (:div :class "container"
-                   (if (w/session (session-value :uid))
-                       (htm (:ul :class "nav"
+      (:body
+        (:div :class "navbar navbar-fixed-top"
+          (:div :class "navbar-inner"
+            (:div :class "container"
+              (if (w/session (session-value :uid))
+                  (htm (:ul :class "nav"
                               ;(:a :href "/" :class "brand" "Liaison")
                               (:li :class "dropdown"
                                 (:a :href "#"
@@ -132,18 +129,20 @@
                                               :onclick (ps ((@ liaison loader) 6)
                                                            false)
                                              "Active within 5 day")))))
-                            (:ul :class "nav pull-right"
-                                 (:li (:a :href "/logout" "Logout")))
-                            (:ul :class "nav pull-right"
-                                 (:p :class "navbar-text span2" :id "tstatus")))
-                       (htm
-                        (:ul :class "nav"
-                             (:a :href "/" :class "brand" "Liaison")
-                             (:li (:a :href "/login" "Login")))))))))
-             (htm
-              (:script :src "/bs/js/bootstrap.js")
-              (:script :src "/js")
-              (:script :type "text/javascript" :src "http://maps.google.com/maps/api/js?sensor=false&key=AIzaSyDsOVRkRfKm3kBVrUaih3xRPYp6dRe8iZ4"))))))
+                       (:ul :class "nav pull-right"
+                         (:li (:a :href "/logout" "Logout")))
+                       (:ul :class "nav pull-right"
+                         (:p :class "navbar-text span2" :id "tstatus")))
+                  (htm
+                   (:ul :class "nav"
+                     (:a :href "/" :class "brand" "Liaison")
+                     (:li (:a :href "/login" "Login"))))))))
+        (dialog-msg)
+        ,@body
+        (htm
+         (:script :src "/bs/js/bootstrap.js")
+         (:script :src "/js")
+         (:script :type "text/javascript" :src "http://maps.google.com/maps/api/js?sensor=false&key=AIzaSyDsOVRkRfKm3kBVrUaih3xRPYp6dRe8iZ4"))))))
 
 (defun page/main ()
   (let ((my-uid (u/uid)))
@@ -384,8 +383,7 @@
 (defun handler/site-css ()
   (setf (hunchentoot:content-type*) "text/css")
   (css-lite:css
-    ((:body) (:margin-bottom "0px"
-              :margin-top "35px"))
+    ((:body) (:margin-bottom "0px"))
     ((".prefs") (:margin-top "20px"
                  :padding-left "20px"
                  :padding-right "50px"))))
@@ -525,32 +523,25 @@
                     po))
               records)))))
 
-(defun ajax/load-map ()
-  (no-cache)
-  (let* ((rpath (request-pathname))
-         (datestring (cl-ppcre:regex-replace "gather\/" (format nil "~a" rpath) ""))
-         (dstring (cond ((string= datestring "10") "10 minutes ago")
-                        ((string= datestring "30") "30 minutes ago")
-                        ((string= datestring "2") "2 hours ago")
-                        ((string= datestring "5") "5 hours ago")
-                        ((string= datestring "1") "1 day ago")
-                        ((string= datestring "6") "5 days ago")
-                        (t "yesterday")))
-         (mongo-timestamp (make-date dstring))
-         (people (docs (iter (db.sort "beacon" ($ ($ "timestamp" ($ "$lte" mongo-timestamp)))
-                                      ;:limit 1
-                                      :field "timestamp")))))
-    (w/json
-     (jsown:to-json
-      (mapcar #'(lambda (person)
-                 (let ((po (empty-object))
-                       (urecord (car (@-q "users" ($ "uid" person)))))
-                   (setf (jsown:val po "latitude") (get-element "latitude" person))
-                   (setf (jsown:val po "longitude") (get-element "longitude" person))
-                   (setf (jsown:val po "uid") (get-element "uid" person))
-                   (setf (jsown:val po "owner") (get-element "owner" person))
-                   (setf (jsown:val po "name") (get-element "email" urecord))))
-              people)))))
+;; (defun ajax/load-map ()
+;;   (no-cache)
+;;   (let* ((the-time (- (get-universal-time) (* 60 60 4)))
+;;          (people
+;;           (docs (iter (db.sort "beacon" ($
+;;                                          ($ "timestamp" ($ "$gte" the-time)))
+;;                                         ;:limit 1
+;;                                :field "timestamp")))))
+;;     (w/json
+;;      (jsown:to-json
+;;       (mapcar #'(lambda (person)
+;;                  (let ((po (empty-object))
+;;                        (urecord (car (@-q "users" ($ "uid" (get-element "owner" person))))))
+;;                    (setf (jsown:val po "latitude") (get-element "latitude" person))
+;;                    (setf (jsown:val po "longitude") (get-element "longitude" person))
+;;                    (setf (jsown:val po "uid") (get-element "uid" person))
+;;                    (setf (jsown:val po "owner") (get-element "owner" person))
+;;                    (setf (jsown:val po "name") (get-element "email" urecord))))
+;;               people)))))
 
 (defun ajax/beacon ()
   (w/logged-in
@@ -575,11 +566,11 @@
              (w/json "{result:'true'}"))
            (w/json "{result:'failed'}"))))))
 
-(defun dbg-count-since-date (date)
-  (let* ((the-date (make-date date)))
-    (get-element "n"
-                 (car (docs (iter (db.count "beacon" ($ ($ "timestamp"
-                                                           ($ "$gte" the-date))))))))))
+;; (defun dbg-count-since-date (date)
+;;   (let* ((the-date (make-date date)))
+;;     (get-element "n"
+;;                  (car (docs (iter (db.count "beacon" ($ ($ "timestamp"
+;;                                                            ($ "$gte" the-date))))))))))
 
 
 (defun universal-to-unix-time (ut)

@@ -5,10 +5,9 @@
 
 input { height: 128px; }
 
-body {
-  margin: 2px;
-  margin-bottom: 12px;
-}
+/* body { */
+/*   margin-bottom: 12px; */
+/* } */
 
 input[type="text"],input[type="password"] {
   height: 28px;
@@ -23,4 +22,6 @@ input[type="text"],input[type="password"] {
   clear: both;
 }
 
-#canvas { height: 80%; }
+#canvas { height: 95%;
+          width: 95%;
+        }
