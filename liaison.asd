@@ -11,9 +11,9 @@
                #:parenscript
                #:css-lite
                #:uuid
-               #:chronicity
                #:jsown
                #:css-lite
+               #:net-telent-date
                #:cl-mongo)
   :components ((:file "package")
                (:file "liaison")))

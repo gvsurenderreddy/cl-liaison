@@ -14,7 +14,9 @@
        (hunchentoot:create-prefix-dispatcher "/logout" 'handler/logout)
        (hunchentoot:create-prefix-dispatcher "/register" 'handler/register)
        (hunchentoot:create-prefix-dispatcher "/beacon" 'ajax/beacon)
+
        (hunchentoot:create-prefix-dispatcher "/gather" 'ajax/load-public-map)
+
        (hunchentoot:create-prefix-dispatcher "/css" 'handler/site-css)
        (hunchentoot:create-prefix-dispatcher "/js" 'handler/site-js)
        (hunchentoot:create-regex-dispatcher "^/$" 'page/main)))
@@ -74,17 +76,18 @@
              ,@body
              (dialog-msg)
              (htm
-              (:div :class "navbar navbar-fixed-bottom"
+              (:div :class "navbar navbar-fixed-top"
                (:div :class "navbar-inner"
                  (:div :class "container"
                    (if (w/session (session-value :uid))
                        (htm (:ul :class "nav"
-                              (:a :href "/" :class "brand" "Liaison")
+                              ;(:a :href "/" :class "brand" "Liaison")
                               (:li :class "dropdown"
                                 (:a :href "#"
-                                    :class "dropdown-toggle"
+                                    :class "dropdown-toggle brand"
                                     :data-toggle "dropdown"
-                                    (:i :class "icon-upload icon-white"))
+                                    ;(:i :class "icon-upload icon-white"))
+                                    "Liaison")
                                     
                                 (:ul :class "dropdown-menu"
                                      (:li :class "nav-header" "Options")
@@ -130,7 +133,9 @@
                                                            false)
                                              "Active within 5 day")))))
                             (:ul :class "nav pull-right"
-                                 (:li (:a :href "/logout" "Logout"))))
+                                 (:li (:a :href "/logout" "Logout")))
+                            (:ul :class "nav pull-right"
+                                 (:p :class "navbar-text span2" :id "tstatus")))
                        (htm
                         (:ul :class "nav"
                              (:a :href "/" :class "brand" "Liaison")
@@ -140,25 +145,6 @@
               (:script :src "/js")
               (:script :type "text/javascript" :src "http://maps.google.com/maps/api/js?sensor=false&key=AIzaSyDsOVRkRfKm3kBVrUaih3xRPYp6dRe8iZ4"))))))
 
-(defun u/uid ()
-  (w/session
-   (session-value :uid)))
-(defun w/json (msg)
-  (setf (hunchentoot:content-type*) "application/json")
-  msg)
-(defun dialog-set (m)
-  (w/session (setf (session-value :status) m)))
-(defun dialog-msg ()
-  (w/session
-    (let ((msg (session-value :status)))
-      (and msg
-        (progn
-          (hunchentoot:delete-session-value :status)
-          (htm
-           (:div :class "alert alert-danger"
-                 (str msg))))))))
-(defun check/email-exists (email)
-  (@-q "users" ($ "email" email)))
 (defun page/main ()
   (let ((my-uid (u/uid)))
     (no-cache)
@@ -244,24 +230,24 @@
                                                       "Developer Controls!"))))))))))
 
 
+
 (defun %-random-element-id ()
   "Build a random string to use as an HTML element id."
-  (let* ((tid (string (gensym)))
-         (dp (concatenate 'string "#" tid)))
-    (list tid dp)))
+  (let ((tid (string (gensym))))
+    (list tid (concatenate 'string "#" tid))))
 
 (defmacro %-agroup (&key name dataparent inner)
-  (let ((the-inner-div (%-random-element-id)))
-    `(htm (:div :class "accordion-group"
-            (:div :class "accordion-heading"
-              (:a :class "accordion-toggle"
-                  :data-toggle "collapse"
-                  :data-parent ,dataparent
-                  :href ,(second the-inner-div) ,name))
-            (:div :id ,(car the-inner-div)
-                  :class "accordion-body collapse"
-                  (:div :class "accordion-inner"
-                        ,inner))))))
+    (let ((the-inner-div (%-random-element-id)))
+      `(htm (:div :class "accordion-group"
+                  (:div :class "accordion-heading"
+                        (:a :class "accordion-toggle"
+                            :data-toggle "collapse"
+                            :data-parent ,dataparent
+                            :href ,(second the-inner-div) ,name))
+                  (:div :id ,(car the-inner-div)
+                        :class "accordion-body collapse"
+                        (:div :class "accordion-inner"
+                              ,inner))))))
 (defmacro %-cgroup (&key name inner targetid)
   (let ((target-id (or targetid
                        (second (%-random-element-id))))
@@ -273,20 +259,33 @@
           (:div :class "controls"
             ,the-inner)))))
 
+(defun u/uid ()
+  (w/session
+   (session-value :uid)))
+(defun w/json (msg)
+  (setf (hunchentoot:content-type*) "application/json")
+  msg)
+(defun dialog-set (m)
+  (w/session (setf (session-value :status) m)))
+(defun dialog-msg ()
+  (w/session
+    (let ((msg (session-value :status)))
+      (and msg
+        (progn
+          (hunchentoot:delete-session-value :status)
+          (htm
+           (:div :class "alert alert-danger"
+                 (str msg))))))))
+(defun check/email-exists (email)
+  (@-q "users" ($ "email" email)))
+
 (defun $-replace (pat buf)
   (cl-ppcre:regex-replace pat (format nil "~a" buf) ""))
 (defun hash-password (pas)
   (ironclad:byte-array-to-hex-string
    (ironclad:digest-sequence :sha256
     (ironclad:ascii-string-to-byte-array pas))))
-(defun epoch ()
-  (let ((unix-epoch-difference (encode-universal-time 0 0 0 1 1 1970 0))
-        (univ-time (get-universal-time)))
-    (defun universal-to-unix-time (universal-time)
-      (- universal-time unix-epoch-difference))
-    (defun get-unix-time ()
-      (universal-to-unix-time univ-time))
-    (get-unix-time)))
+
 (defun unique-id ()
   (format nil "~a"
     (uuid:make-v4-uuid)))
@@ -385,7 +384,8 @@
 (defun handler/site-css ()
   (setf (hunchentoot:content-type*) "text/css")
   (css-lite:css
-    ((:body) (:margin-bottom "0px"))
+    ((:body) (:margin-bottom "0px"
+              :margin-top "35px"))
     ((".prefs") (:margin-top "20px"
                  :padding-left "20px"
                  :padding-right "50px"))))
@@ -424,19 +424,20 @@
 
 
       make_marker (lambda (ujs)
+                    (var d (@ (new ( -Date 0))))
+                    ((@ d set-U-T-C-Seconds) (@ ujs timestamp))
                     (var mk (new ((@ google maps -Marker)
                                   (create
                                    position (new ((@ google maps -Lat-Lng) (@ ujs latitude) (@ ujs longitude)))
                                    shape (create coord (array 1 1 1 20 18 20 18 1)
                                                  type "poly")
-                                   ;image ((@ liaison mkimage))
-                                   ; shadow ((@ liaison mkshadow))
                                    map goog_map
                                    title (@ ujs uid)))))
-                    ;; (var iw-content ((@ $ get) (concatenate 'string "/iw/" owner) (lambda (x)
-                    ;;                                                                    x)))
                     (var iw (new ((@ google maps -Info-Window)
-                                  (create content (@ ujs email))))) ;iw-content response-Text)))))
+                                  (create content (concatenate 'string
+                                                               (@ ujs email)
+                                                               "<br/>"
+                                                               d)))))
                     ((@ google maps event add-Listener) mk "click" (lambda ()
                                                                      ((@ iw.open) goog_map mk)))
                     ((@ goog_markers push) mk)
@@ -471,15 +472,15 @@
                        ((@ $ ajax) (create
                                     type "POST"
                                     url "/beacon"
-                                    data (create position pos)))
-                       true)
-                     (lambda () false))))
+                                    data (create position pos)))))))
+                     ;(lambda () false))))
       mkimage (lambda ()
                (new ((@ google maps -Marker-Image) "/girls_marker.png"
                      (new ((@ google maps -Size) 20 32))
                      (new ((@ google maps -Point) 0 0))
                      (new ((@ google maps -Point) 0 32)))))))
     ((@ ($ document) ready) (lambda ()
+                              ;(ps ((@ $ "#tstatus" text) "Loading..."))
                               ((@ liaison init))
                               (set-Timeout (lambda () ((@ liaison loader))) 2000)
                               (set-Interval (@ liaison beacon) 30000)))))
@@ -511,10 +512,16 @@
     (w/json
      (jsown:to-json
       (mapcar #'(lambda (x)
-                  (let ((po (empty-object)))
-                    (mapcar (lambda (kk)
-                              (setf (jsown:val po kk) (format nil "~a" (get-element kk x))))
-                            '("uid" "timestamp" "email" "longitude" "latitude"))
+                   (let* ((po (empty-object))
+                          (newf
+                           (mapcar (lambda (kk)
+                                     (setf (jsown:val po kk)
+                                           (format nil "~a"
+                                                   (get-element kk x))))
+                                   '("uid" "email" "longitude" "latitude"))))
+                    (setf (jsown:val newf "timestamp")
+                          (universal-to-unix-time
+                           (get-element "timestamp" x)))
                     po))
               records)))))
 
@@ -544,6 +551,7 @@
                    (setf (jsown:val po "owner") (get-element "owner" person))
                    (setf (jsown:val po "name") (get-element "email" urecord))))
               people)))))
+
 (defun ajax/beacon ()
   (w/logged-in
    (labels ((normalize-name (f)
@@ -551,7 +559,7 @@
                  (re/kill "coords"
                      (re/kill "\\]+|\\[+" f)))))
      (let* ((new-doc (make-document))
-            (my-owner (w/session (u/uid)))
+            (my-owner (u/uid))
             (my-uid (unique-id))
             (all-keys (hunchentoot:post-parameters*)))
        (if (< 0 (length all-keys))
@@ -562,17 +570,19 @@
                          (add-element (normalize-name a) b new-doc))))
              (add-element "owner" my-owner new-doc)
              (add-element "uid" my-uid new-doc)
-             (add-element "timestamp" (epoch) new-doc)
+             (add-element "timestamp" (get-universal-time) new-doc)
              (db.save "beacon" new-doc)
              (w/json "{result:'true'}"))
            (w/json "{result:'failed'}"))))))
-
-
-
-
 
 (defun dbg-count-since-date (date)
   (let* ((the-date (make-date date)))
     (get-element "n"
                  (car (docs (iter (db.count "beacon" ($ ($ "timestamp"
                                                            ($ "$gte" the-date))))))))))
+
+
+(defun universal-to-unix-time (ut)
+  (let ((epoch-difference (encode-universal-time 0 0 0 1 1 1970 0)))
+    (- ut epoch-difference)))
+

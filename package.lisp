@@ -7,6 +7,7 @@
         #:hunchentoot
         #:jsown
         #:lparallel
+        #:net.telent.date
         #:parenscript)
   (:export #:srv/start
            #:srv/stop)
