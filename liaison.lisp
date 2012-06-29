@@ -63,7 +63,7 @@
        (:title ,title)
        (:link :type "text/css" :rel "stylesheet" :href "/bs/css/bootstrap.css")
        (:link :type "text/css" :rel "stylesheet" :href "http://fonts.googleapis.com/css?family=Anonymous+Pro|Cantarell|Ubuntu|Ubuntu+Mono")
-       ;(:link :type "text/css" :rel "stylesheet" :href "/liaison.css")
+       (:link :type "text/css" :rel "stylesheet" :href "/liaison.css")
        (:link :type "text/css" :rel "stylesheet" :href "/css")
        (:link :rel "shortcut icon" :href "/favicon.ico")
        (:link :rel "apple-touch-icon" :href "/bs/images/apple-touch-icon.png")
@@ -73,77 +73,82 @@
        (:script (ps (defvar goog_map nil)
                     (defvar goog_markers nil))))
       (:body
-        (:div :class "navbar navbar-fixed-top"
-          (:div :class "navbar-inner"
-            (:div :class "container"
-              (if (w/session (session-value :uid))
-                  (htm (:ul :class "nav"
-                              ;(:a :href "/" :class "brand" "Liaison")
-                              (:li :class "dropdown"
-                                (:a :href "#"
-                                    :class "dropdown-toggle brand"
-                                    :data-toggle "dropdown"
-                                    ;(:i :class "icon-upload icon-white"))
-                                    "Liaison")
-                                    
-                                (:ul :class "dropdown-menu"
-                                     (:li :class "nav-header" "Options")
-                                     (:li :class "nav-divider")
-                                     (:li (:a :data-toggle "modal"
-                                              :href "#pmodal"
-                                              "Preferences"))
-                                     
-                                     (:li :class "nav-header" "Map Options")
-                                     (:li :class "nav-divider")
-                                     (:li (:a :href "#"
-                                              :onclick (ps ((@ liaison beacon))
-                                                           false)
-                                              "Ping"))
-                                     (:li (:a :href "#"
-                                              :onclick (ps ((@ liaison clearmap))
-                                                           false)
-                                              "Clear The Map"))
-                                     (:li :class "nav-header" "People")
-                                     (:li :class "nav-divider")
-                                     (:li (:a :href "#"
-                                              :onclick (ps ((@ liaison loader) 10)
-                                                           false)
-                                             "Active within 10 minutes"))
-                                     (:li (:a :href "#"
-                                              :onclick (ps ((@ liaison loader) 30)
-                                                           false)
-                                             "Active within 30 minutes"))
-                                     (:li (:a :href "#"
-                                              :onclick (ps ((@ liaison loader) 2)
-                                                           false)
-                                             "Active within 2 hours"))
-                                     (:li (:a :href "#"
-                                              :onclick (ps ((@ liaison loader) 5)
-                                                           false)
-                                             "Active within 5 hours"))
-                                     (:li (:a :href "#"
-                                              :onclick (ps ((@ liaison loader) 1)
-                                                           false)
-                                             "Active within 1 day"))
-                                     (:li (:a :href "#"
-                                              :onclick (ps ((@ liaison loader) 6)
-                                                           false)
-                                             "Active within 5 day")))))
-                       (:ul :class "nav pull-right"
-                         (:li (:a :href "/logout" "Logout")))
-                       (:ul :class "nav pull-right"
-                         (:p :class "navbar-text span2" :id "tstatus")))
-                  (htm
-                   (:ul :class "nav"
-                     (:a :href "/" :class "brand" "Liaison")
-                     (:li (:a :href "/login" "Login"))))))))
-        (dialog-msg)
-        ,@body
-        (htm
-         (:script :src "/bs/js/bootstrap.js")
-         (:script :src "/js")
-         (:script :type "text/javascript" :src "http://maps.google.com/maps/api/js?sensor=false&key=AIzaSyDsOVRkRfKm3kBVrUaih3xRPYp6dRe8iZ4"))))))
+       (:div :class "navbar navbar-fixed-top"
+         (:div :class "navbar-inner"
+               (:div :class "container"
+                     (if (w/session (session-value :uid))
+                         (htm (:ul :class "nav"
+                                   (:li :class "dropdown"
+                                        (:a :href "#"
+                                            :class "dropdown-toggle brand"
+                                            :data-toggle "dropdown"
+                                            "Liaison")
+                                        (:ul :class "dropdown-menu"
+                                             (:li :class "nav-header" "People")
+                                             (:li :class "nav-divider")
+                                             (:li (:a :href "#"
+                                                      :onclick
+                                                      (ps ((@ liaison recenter))
+                                                          false)
+                                                      "Find Me"))
+                                             (:li (:a :href "#"
+                                                      :onclick (ps ((@ liaison loader) 10)
+                                                                   false)
+                                                      "Active within 10 minutes"))
+                                             (:li (:a :href "#"
+                                                      :onclick (ps ((@ liaison loader) 30)
+                                                                   false)
+                                                      "Active within 30 minutes"))
+                                             (:li (:a :href "#"
+                                                      :onclick (ps ((@ liaison loader) 2)
+                                                                   false)
+                                                      "Active within 2 hours"))
+                                             (:li (:a :href "#"
+                                                      :onclick (ps ((@ liaison loader) 5)
+                                                                   false)
+                                                      "Active within 5 hours"))
+                                             (:li (:a :href "#"
+                                                      :onclick (ps ((@ liaison loader) 1)
+                                                                   false)
+                                                      "Active within 1 day"))
+                                             (:li (:a :href "#"
+                                                      :onclick (ps ((@ liaison loader) 6)
+                                                                   false)
+                                                      "Active within 5 day"))
+                                             (:li :class "nav-divider")
+                                             (:li :class "nav-header" "Options")
+                                             (:li :class "nav-divider")
+                                             (:li (:a :data-toggle "modal"
+                                                      :href "#pmodal"
+                                                      "Preferences"))
+                                             (:li :class "nav-header" "Map Options")
+                                             (:li :class "nav-divider")
+                                             (:li (:a :href "#"
+                                                      :onclick (ps ((@ liaison beacon))
+                                                                   false)
+                                                      "Ping"))
+                                             (:li (:a :href "#"
+                                                      :onclick (ps ((@ liaison clearmap))
+                                                                   false)
+                                                      "Clear The Map"))
+                                             (:li (:a :href "/"
+                                                      "Reload The Page")))))
 
+                              (:ul :class "nav pull-right"
+                                   (:li (:a :href "/logout" "Logout")))
+                              (:ul :class "nav pull-right"
+                                   (:p :class "navbar-text span2" :id "tstatus")))
+                         (htm
+                          (:ul :class "nav"
+                               (:a :href "/" :class "brand" "Liaison")
+                               (:li (:a :href "/login" "Login"))))))))
+       (:div :id "fxt"
+             (dialog-msg)
+             ,@body)
+       (htm
+        (:script :src "/bs/js/bootstrap.js")
+        (:script :src "/js")
+        (:script :type "text/javascript" :src "http://maps.google.com/maps/api/js?sensor=false&key=AIzaSyDsOVRkRfKm3kBVrUaih3xRPYp6dRe8iZ4"))))))
 (defun page/main ()
   (let ((my-uid (u/uid)))
     (no-cache)
@@ -227,7 +232,6 @@
                                                 :class "accordion-body collapse"
                                                 (:div :class "accordion-inner"
                                                       "Developer Controls!"))))))))))
-
 
 
 (defun %-random-element-id ()
@@ -383,10 +387,11 @@
 (defun handler/site-css ()
   (setf (hunchentoot:content-type*) "text/css")
   (css-lite:css
-    ((:body) (:margin-bottom "0px"))
-    ((".prefs") (:margin-top "20px"
-                 :padding-left "20px"
-                 :padding-right "50px"))))
+    ((:body) (:margin-top "40px"
+              :margin-bottom "0px"))))
+    ;; ((".prefs") (:margin-top "60px"
+    ;;              :padding-left "20px"
+    ;;              :padding-right "50px"))))
 (defun handler/site-js ()
   (no-cache)
   (setf (hunchentoot:content-type*) "text/javascript")
@@ -400,6 +405,10 @@
                   ((@ ($ (@ "#prefs")) modal) (create backdrop t
                                                       keyboard t
                                                       show t)))
+      recenter (lambda ()
+                 ((@ navigator geolocation get-Current-Position)
+                  (lambda (pos)
+                    ((@ goog_map pan-To) (new ((@ google maps -Lat-Lng) (@ pos coords latitude) (@ pos coords longitude)))))))
       init (lambda ()
              (if navigator.geolocation
                  ((@ navigator geolocation get-Current-Position)
@@ -418,9 +427,6 @@
                                                  zoom 15
                                                  map-Type-Id (@ google maps -Map-Type-Id -R-O-A-D-M-A-P)))))
                      true)
-
-
-
       make_marker (lambda (ujs)
                     (var d (@ (new ( -Date 0))))
                     ((@ d set-U-T-C-Seconds) (@ ujs timestamp))
@@ -436,11 +442,12 @@
                                                                (@ ujs email)
                                                                "<br/>"
                                                                d)))))
-                    ((@ google maps event add-Listener) mk "click" (lambda ()
-                                                                     ((@ iw.open) goog_map mk)))
+                    ((@ google maps event add-Listener) mk "click"
+                     (lambda ()
+                       ((@ goog_map pan-To) (new ((@ google maps -Lat-Lng) (@ ujs latitude) (@ ujs longitude))))
+                       ((@ iw.open) goog_map mk)))
                     ((@ goog_markers push) mk)
                     true)
-
       clearmap (lambda ()
                      ((@ $ each) goog_markers (lambda (idx val)
                                                 ((@ val set-Map) nil)
@@ -458,11 +465,6 @@
                                        dat
                                        (lambda (k v)
                                          ((@ liaison make_marker) v)))))))
-                                          ;; (@ v latitude)
-                                          ;; (@ v longitude)
-                                          ;; (@ v uid))))))))
-
-
       beacon (lambda ()
                (and (@ navigator geolocation)
                     ((@ navigator geolocation get-Current-Position)
@@ -471,14 +473,12 @@
                                     type "POST"
                                     url "/beacon"
                                     data (create position pos)))))))
-                     ;(lambda () false))))
       mkimage (lambda ()
                (new ((@ google maps -Marker-Image) "/girls_marker.png"
                      (new ((@ google maps -Size) 20 32))
                      (new ((@ google maps -Point) 0 0))
                      (new ((@ google maps -Point) 0 32)))))))
     ((@ ($ document) ready) (lambda ()
-                              ;(ps ((@ $ "#tstatus" text) "Loading..."))
                               ((@ liaison init))
                               (set-Timeout (lambda () ((@ liaison loader))) 2000)
                               (set-Interval (@ liaison beacon) 30000)))))
@@ -489,6 +489,7 @@
 (defun db-latest-from-user (uid)
   (car (docs (iter (db.sort "beacon" ($ "owner" uid)
                        :limit 1
+                       :asc nil
                        :field "timestamp")))))
 (defun db-email-from-uid (uid)
   (get-element "email"
