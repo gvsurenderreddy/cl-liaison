@@ -62,6 +62,7 @@
        (:meta :charset "utf-8")
        (:meta :name "viewport" :content "width=device-width, initial-scale=1.0")
        (:title ,title)
+       (:link :type "text/css" :rel "stylesheet" :href "/bs/css/bootstrap.css")
        (:link :type "text/css" :rel "stylesheet" :href "/bs/css/bootstrap-responsive.css")
        (:link :type "text/css" :rel "stylesheet" :href "http://fonts.googleapis.com/css?family=Anonymous+Pro|Cantarell|Ubuntu|Ubuntu+Mono")
        (:link :type "text/css" :rel "stylesheet" :href "/css")
@@ -73,8 +74,6 @@
        (:script (ps (defvar goog_map nil)
                     (defvar goog_markers nil))))
       (:body
-       ,@body
-       (htm
         (:div :class "navbar navbar-fixed-top"
          (:div :class "navbar-inner"
            (:div :class "container"
@@ -125,10 +124,12 @@
                   (:ul :class "nav"
                     (:a :href "/" :class "brand" "Liaison")
                     (:li (:a :href "/login" "Login"))))))))
-        (:script :src "/bs/js/bootstrap.js")
-        (:script :src "/js")
-        (:script :type "text/javascript"
-                 :src "http://maps.google.com/maps/api/js?sensor=false&key=AIzaSyDsOVRkRfKm3kBVrUaih3xRPYp6dRe8iZ4"))))))
+        ,@body
+        (htm
+         (:script :src "/bs/js/bootstrap.js")
+         (:script :src "/js")
+         (:script :type "text/javascript"
+                  :src "http://maps.google.com/maps/api/js?sensor=false&key=AIzaSyDsOVRkRfKm3kBVrUaih3xRPYp6dRe8iZ4"))))))
 
 (defun page/main ()
   (let ((my-uid (u/uid)))
