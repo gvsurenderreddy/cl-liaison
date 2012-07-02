@@ -13,6 +13,7 @@
                #:uuid
                #:jsown
                #:css-lite
+               #:cl-moore
                #:net-telent-date
                #:cl-mongo)
   :components ((:file "package")
