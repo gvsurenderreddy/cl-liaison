@@ -14,6 +14,7 @@
                #:jsown
                #:css-lite
                #:cl-moore
+               #:drakma
                #:net-telent-date
                #:cl-mongo)
   :components ((:file "package")

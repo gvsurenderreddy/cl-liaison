@@ -15,6 +15,8 @@
 
        (hunchentoot:create-prefix-dispatcher "/profile" 'handler/profile)
 
+       (hunchentoot:create-prefix-dispatcher "/feeds" 'handler/feeds)
+
        (hunchentoot:create-prefix-dispatcher "/beacon" 'ajax/beacon)
        (hunchentoot:create-prefix-dispatcher "/gather" 'ajax/load-public-map)
 
@@ -54,6 +56,7 @@
   `(cl-who:with-html-output-to-string
        (*standard-output* nil :prologue nil :indent t)
      ,@body))
+
 (defmacro w/page (title &rest body)
   `(cl-who:with-html-output-to-string
        (*standard-output* nil :prologue t :indent t)
@@ -89,14 +92,14 @@
                             (:li :class "nav-divider")
                             (:li (:a :href "#"
                                      :onclick (ps (set-Timeout (lambda ()
-                                                                 ((@ liaison recenter)))
-                                                               200)
-                                                  ((@ goog_map set-Zoom) 17)
-                                                  false)
+                                                                        ((@ liaison recenter)))
+                                                                      200)
+                                                         ((@ goog_map set-Zoom) 17)
+                                                         false)
                                      "Find Me"))
                             (:li (:a :href "#"
-                                     :onclick (ps ((@ liaison loader) 30)
-                                                  false)
+                                     :onclick (ps-inline ((@ liaison loader) 30)
+                                                         false)
                                      "Active within 30 minutes"))
                             (:li :class "nav-divider")
                             (:li :class "nav-header" "Options")
@@ -107,19 +110,19 @@
                             (:li :class "nav-header" "Map Options")
                             (:li :class "nav-divider")
                             (:li (:a :href "#"
-                                     :onclick (ps ((@ liaison beacon))
-                                                  false)
+                                     :onclick (ps-inline ((@ liaison beacon))
+                                                         false)
                                      "Ping"))
                             (:li (:a :href "#"
-                                     :onclick (ps ((@ liaison clearmap))
-                                                  false)
+                                     :onclick (ps-inline ((@ liaison clearmap))
+                                                         false)
                                      "Clear The Map"))
                             (:li (:a :href "/"
                                      "Reload The Page")))))
                       (:ul :class "nav pull-right"
-                        (:li (:a :href "/logout" "Logout")))
-                      (:ul :class "nav pull-right"
-                        (:p :class "navbar-text span2" :id "tstatus")))
+                        (:li (:p :class "navbar-text" :id "tstatus"))
+                        (:li (:a :href "/logout" "Logout"))))
+                                        
                  (htm
                   (:ul :class "nav"
                     (:a :href "/" :class "brand" "Liaison")
@@ -161,7 +164,7 @@
                                                                 :inner (:span
                                                                         (:input :id "profpublic"
                                                                                 :type "checkbox"
-                                                                                :onclick (ps (settings-toggle "#profpublic" "public"))
+                                                                                :onclick (ps-inline (settings-toggle "#profpublic" "public"))
                                                                                 :name "public")
                                                                         (:p :class "help-block"
                                                                             "If checked, your profile is publicly viewable to people who ARE NOT yet logged in.")))
@@ -170,7 +173,7 @@
                                                                         (:input :id "profsearch"
                                                                                 :type "checkbox"
                                                                                 :name "searchable"
-                                                                                :onclick (ps (settings-toggle "#profsearch" "search")))
+                                                                                :onclick (ps-inline (settings-toggle "#profsearch" "search")))
                                                                         (:p :class "help-block"
                                                                             "If checked, your profile is searchable by other users.  Note that users who are not logged in CANNOT search at all.")))
                                                       (%-cgroup :name "Profile Picture"
@@ -372,14 +375,14 @@
   (setf (hunchentoot:content-type*) "text/css")
   (css-lite:css
     (("*") (:font-family "Open Sans,Ubuntu,arial"))
+    ;((".btoggle") (:margin-top "5px"))
     (("html,body") (:height "100%"))
 
     
              ;; :position "absolute"))
     ((".container,.row,#canvas,.span12") (:height "inherit"))))
-;    (("#canvas") (:margin-top "45px"))))
 
-
+    ;; (("#canvas") (:margin-top "45px"))))
     ;; ((:input) (:height "128px"
     ;;            :font-family "Ubuntu Mono"))
     ;; (("#canvascontainer") ;(:height "90%"
@@ -468,6 +471,8 @@
                  url "/settings/toggle"
                  data (create name ,remotename
                               value ((@ ((@ $ ) ,htmlelement) attr) "checked")))))
+
+
 ;(ps (settings-toggle "#farty" "farts"))
 
 
@@ -520,6 +525,7 @@
                                    shape (create coord (array 1 1 1 20 18 20 18 1)
                                                  type "poly")
                                    map goog_map
+                                   animation (@ google maps -Animation -D-R-O-P)
                                    title (@ ujs uid)))))
                     (var iw (new ((@ google maps -Info-Window)
                                   (create content (concatenate 'string
@@ -561,7 +567,10 @@
                                       ((@ $ each)
                                        dat
                                        (lambda (k v)
-                                         ((@ liaison make_marker) v)))))))
+                                         ((@ liaison make_marker) v)))))
+                 ((@ ($ "#tstatus") html) "Updated!")
+                 ((@ ($ "#tstatus") fade-Out) 12000)))
+      
       beacon (lambda ()
                (and (@ navigator geolocation)
                     ((@ navigator geolocation get-Current-Position)
@@ -578,4 +587,43 @@
     ((@ ($ document) ready) (lambda ()
                               ((@ liaison init))
                               (set-Timeout (lambda () ((@ liaison loader))) 2000)
-                              (set-Interval (@ liaison beacon) 30000)))))
+                              (set-Interval (@ liaison beacon) 30000)
+                              (set-Interval (@ liaison loader) 60000)))))
+                              ;;      (progn
+                              ;;        ((@ ($ "#tbaa") css) "color" "yellow")
+                              ;;        ((@ ($ "#tbaa") val) "Auto Update: On")))))))
+
+;(send-json '(("one" "two")))
+
+;; (defmacro send-json (lst)
+;;   (let ((new-obj (gensym)))
+;;     `(let ((,new-obj (jsown:empty-object)))
+;;        (mapcar (lambda (x)
+;;                  (destructuring-bind (f s) x)
+
+;; (defun handler/settings ()
+;;   (let ((setting-name (@-> "name"))
+;;          (setting-val (@-> "value"))
+;;          (the-uid (u/uid)))
+;;     (and the-uid
+;;          (let ((the-user-doc (car (@-q "users" ($ "uid" the-uid)))))
+;;            (if setting-name
+;;                 (progn
+;;                   (if setting-val
+;;                       (add-element setting-name setting-val the-user-doc)
+;;                       (rm-element setting-name the-user-doc))
+;;                   (db.save "users" the-user-doc)
+;;                   (w/ajax 
+
+(defun page-content (url)
+  (multiple-value-bind (content status headers uri stream must-close phrase)
+      (drakma:http-request url)
+    (declare (ignore headers))
+    (when must-close
+      (close stream))
+    (unless (= status 200)
+           (error "unexpected status ~A {~A} on ~A" status phrase uri))
+    content))
+
+;(page-content "http://honk.com")
+
