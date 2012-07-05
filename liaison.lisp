@@ -1,9 +1,11 @@
 (in-package #:liaison)
 
+(setf lparallel:*kernel* (make-kernel 16))
+
 (defparameter *site-acceptor* nil)
 (defparameter *dispatch-table* nil)
 
-(db.use "liaison")
+;(db.use "liaison")
 
 (setq hunchentoot:*show-lisp-errors-p* t
       *show-lisp-backtraces-p* t)
@@ -46,8 +48,12 @@
      (if user-doc
          ,@body
          (hunchentoot:redirect "/login"))))
+
+(defmacro @-m (&rest body)
+  `(with-mongo-connection (:db "liaison")
+     ,@body))
 (defmacro @-q (collection query &optional args)
-  `(docs (iter (db.find ,collection ,query ,@args))))
+  `(@-m (docs (iter (db.find ,collection ,query ,@args)))))
 (defmacro @-> (name)
   `(hunchentoot:parameter ,name))
 (defmacro re/kill (pattern target)
@@ -73,9 +79,7 @@
        (:link :rel "apple-touch-icon" :href "/bs/images/apple-touch-icon.png")
        (:link :rel "apple-touch-icon" :sizes "72x72" :href "/bs/images/apple-touch-icon-72x72.png")
        (:link :rel "apple-touch-icon" :sizes "114x114" :href "/bs/images/apple-touch-icon-114x114.png")
-       (:script :type "text/javascript" :src "/jquery-min.js")
-       (:script (ps (defvar goog_map nil)
-                    (defvar goog_markers nil))))
+       (:script :type "text/javascript" :src "/jquery-min.js"))
       (:body
         (:div :class "navbar navbar-fixed-top"
          (:div :class "navbar-inner"
@@ -129,22 +133,27 @@
                     (:li (:a :href "/login" "Login"))))))))
         ,@body
         (htm
-         (:script :src "/bs/js/bootstrap.js")
-         (:script :src "/js")
-         (:script :type "text/javascript"
-                  :src "http://maps.google.com/maps/api/js?sensor=false&key=AIzaSyDsOVRkRfKm3kBVrUaih3xRPYp6dRe8iZ4"))))))
+         (:script :src "/bs/js/bootstrap.js"))))))
 
 (defun page/main ()
   (let ((my-uid (u/uid)))
     (no-cache)
     (w/page "Geo"
-            (:script :type "text/javascript"
-                     (str (ps (var goog_markers ([]))
-                              (var goog_map nil))))
-            (:div :class "container"
-                  (:div :class "row"
-                        (:div :class "span12"
-                              (:div :class "well" :id "canvas" "Honka..."))))
+         (:script :src "/js")
+         (:script :type "text/javascript"
+                  :src "http://maps.google.com/maps/api/js?sensor=false&key=AIzaSyDsOVRkRfKm3kBVrUaih3xRPYp6dRe8iZ4")
+         (:script :type "text/javascript"
+                  (str (ps (var goog_markers ([]))
+                           (var goog_map nil))))
+         (:script :type "text/javascript"
+                  (str (ps ((@ ($ document) ready)
+                            (lambda ()
+                              ((@ ($ "#canvas") css) "margin-top" "45px"))))))
+
+         (:div :class "container"
+               (:div :class "row"
+                     (:div :class "span12"
+                           (:div :class "well" :id "canvas" "Honka..."))))
             (:div :id "pmodal" :class "modal hide fade"
                   (:div :class "modal-header"
                         (:button :type "button" :class "close" :data-dismiss "modal" "x")
@@ -352,7 +361,7 @@
                                 (hunchentoot:redirect "/register"))
                               (progn
                                 (if (string= sekret "ingram")
-                                    (progn
+                                    (@-m
                                       (add-element "email" new-email td)
                                       (add-element "uid" uu td)
                                       (add-element "password" (hash-password new-pass) td)
@@ -375,21 +384,8 @@
   (setf (hunchentoot:content-type*) "text/css")
   (css-lite:css
     (("*") (:font-family "Open Sans,Ubuntu,arial"))
-    ;((".btoggle") (:margin-top "5px"))
     (("html,body") (:height "100%"))
-
-    
-             ;; :position "absolute"))
     ((".container,.row,#canvas,.span12") (:height "inherit"))))
-
-    ;; (("#canvas") (:margin-top "45px"))))
-    ;; ((:input) (:height "128px"
-    ;;            :font-family "Ubuntu Mono"))
-    ;; (("#canvascontainer") ;(:height "90%"
-    ;;                        (:margin "5px"))
-    ;; (("#canvas") (:margin-top "45px"
-    ;;               :height "90%"))
-    ;; (("input[type='text'],input[type='password']") ("height" "28px"))))
 
 (defun ajax/load-public-map ()
   (no-cache)
@@ -430,7 +426,7 @@
             (my-uid (unique-id))
             (all-keys (hunchentoot:post-parameters*)))
        (if (< 0 (length all-keys))
-           (progn
+           (@-m
              (loop for (a . b) in all-keys
                 do (progn
                      (or (string= b "null")
@@ -443,16 +439,18 @@
            (w/json "{result:'failed'}"))))))
 
 (defun db-get-active-uids ()
-  (get-element "values"
-     (car (docs (iter (db.distinct "beacon" "owner"))))))
+  (@-m (get-element "values"
+          (car (docs (iter (db.distinct "beacon" "owner")))))))
 (defun db-latest-from-user (uid)
-  (car (docs (iter (db.sort "beacon" ($ "owner" uid)
-                       :limit 1
-                       :asc nil
-                       :field "timestamp")))))
+  (@-m
+   (car (docs (iter (db.sort "beacon" ($ "owner" uid)
+                             :limit 1
+                             :asc nil
+                             :field "timestamp"))))))
 (defun db-email-from-uid (uid)
-  (get-element "email"
-               (car (docs (iter (db.find "users" ($ "uid" uid)))))))
+  (@-m
+   (get-element "email"
+                (car (docs (iter (db.find "users" ($ "uid" uid))))))))
 
 (defun universal-to-unix-time (ut)
   (let ((epoch-difference (encode-universal-time 0 0 0 1 1 1970 0)))
@@ -471,10 +469,6 @@
                  url "/settings/toggle"
                  data (create name ,remotename
                               value ((@ ((@ $ ) ,htmlelement) attr) "checked")))))
-
-
-;(ps (settings-toggle "#farty" "farts"))
-
 
 (defun handler/site-js ()
   (no-cache)
@@ -575,10 +569,10 @@
                (and (@ navigator geolocation)
                     ((@ navigator geolocation get-Current-Position)
                      (lambda (pos)
-                       ((@ $ ajax) (create
+                       (ps ((@ $ ajax) (create
                                     type "POST"
                                     url "/beacon"
-                                    data (create position pos)))))))
+                                    data (create position pos))))))))
       mkimage (lambda ()
                (new ((@ google maps -Marker-Image) "/girls_marker.png"
                      (new ((@ google maps -Size) 20 32))
@@ -589,31 +583,6 @@
                               (set-Timeout (lambda () ((@ liaison loader))) 2000)
                               (set-Interval (@ liaison beacon) 30000)
                               (set-Interval (@ liaison loader) 60000)))))
-                              ;;      (progn
-                              ;;        ((@ ($ "#tbaa") css) "color" "yellow")
-                              ;;        ((@ ($ "#tbaa") val) "Auto Update: On")))))))
-
-;(send-json '(("one" "two")))
-
-;; (defmacro send-json (lst)
-;;   (let ((new-obj (gensym)))
-;;     `(let ((,new-obj (jsown:empty-object)))
-;;        (mapcar (lambda (x)
-;;                  (destructuring-bind (f s) x)
-
-;; (defun handler/settings ()
-;;   (let ((setting-name (@-> "name"))
-;;          (setting-val (@-> "value"))
-;;          (the-uid (u/uid)))
-;;     (and the-uid
-;;          (let ((the-user-doc (car (@-q "users" ($ "uid" the-uid)))))
-;;            (if setting-name
-;;                 (progn
-;;                   (if setting-val
-;;                       (add-element setting-name setting-val the-user-doc)
-;;                       (rm-element setting-name the-user-doc))
-;;                   (db.save "users" the-user-doc)
-;;                   (w/ajax 
 
 (defun page-content (url)
   (multiple-value-bind (content status headers uri stream must-close phrase)
@@ -624,6 +593,4 @@
     (unless (= status 200)
            (error "unexpected status ~A {~A} on ~A" status phrase uri))
     content))
-
-;(page-content "http://honk.com")
 
