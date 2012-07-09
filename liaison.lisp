@@ -1,3 +1,5 @@
+
+
 (in-package #:liaison)
 
 (setf lparallel:*kernel* (make-kernel 16))
@@ -16,11 +18,14 @@
        (hunchentoot:create-prefix-dispatcher "/register" 'handler/register)
 
        (hunchentoot:create-prefix-dispatcher "/profile" 'handler/profile)
+       (hunchentoot:create-prefix-dispatcher "/settings/toggle" 'handler/settings)
+       (hunchentoot:create-prefix-dispatcher "/settings/get/" 'handler/preference)
 
        (hunchentoot:create-prefix-dispatcher "/feeds" 'handler/feeds)
 
        (hunchentoot:create-prefix-dispatcher "/beacon" 'ajax/beacon)
        (hunchentoot:create-prefix-dispatcher "/gather" 'ajax/load-public-map)
+       (hunchentoot:create-prefix-dispatcher "/marker/" 'ajax/marker-info)
 
        (hunchentoot:create-prefix-dispatcher "/css" 'handler/site-css)
        (hunchentoot:create-prefix-dispatcher "/js" 'handler/site-js)
@@ -34,6 +39,7 @@
                          :document-root (resource-path "./resources/static/")
                          :port port))
     (hunchentoot:start *site-acceptor*)))
+
 (defun srv/stop ()
   (hunchentoot:stop *site-acceptor*))
 
@@ -132,6 +138,7 @@
                     (:a :href "/" :class "brand" "Liaison")
                     (:li (:a :href "/login" "Login"))))))))
         ,@body
+        (dialog-msg)
         (htm
          (:script :src "/bs/js/bootstrap.js"))))))
 
@@ -164,32 +171,62 @@
                                         :dataparent "#cpanel"
                                         :inner (:form :method "POST"
                                                       :action "/profile"
-                                                      :enctype "multipart/form-data"
                                                       :id "prefform"
                                                       :onsubmit (ps false)
                                                       :class "form-horizontal"
                                                       (%-cgroup :name "Public"
                                                                 :targetid "profpub"
                                                                 :inner (:span
-                                                                        (:input :id "profpublic"
-                                                                                :type "checkbox"
-                                                                                :onclick (ps-inline (settings-toggle "#profpublic" "public"))
-                                                                                :name "public")
-                                                                        (:p :class "help-block"
-                                                                            "If checked, your profile is publicly viewable to people who ARE NOT yet logged in.")))
+                                                                         (:input :id "profpublic"
+                                                                                 :type "checkbox"
+                                                                                 :name "public"
+                                                                                 :onclick (ps-inline (settings-toggle "#profpublic" "public")))
+                                                                         (:p :class "help-block"
+                                                                             "If checked, your profile is publicly viewable to people who ARE NOT yet logged in.")))
                                                       (%-cgroup :name "Searchable"
                                                                 :inner (:span
                                                                         (:input :id "profsearch"
                                                                                 :type "checkbox"
-                                                                                :name "searchable"
+                    
+                                                            :name "searchable"
                                                                                 :onclick (ps-inline (settings-toggle "#profsearch" "search")))
                                                                         (:p :class "help-block"
                                                                             "If checked, your profile is searchable by other users.  Note that users who are not logged in CANNOT search at all.")))
-                                                      (%-cgroup :name "Profile Picture"
-                                                                :inner (:span 
-                                                                        (:input :type "file"
-                                                                                :name "ppic"
-                                                                                :class "span2")))
+                                                      ;; (%-cgroup :name "Profile Picture"
+                                                      ;;           :inner (:span 
+                                                      ;;                   (:input :type "file"
+                                                      ;;                           :name "ppic"
+                                                      ;;                           :class "span2")))
+                                                      (%-cgroup :name "Gender"
+                                                                :inner (:span (:select :id "gselect" :name "gender"
+                                                                                       (:option :value "noselect" "  ")
+                                                                                       (:option :value "female" "Female")
+                                                                                       (:option :value "male" "Male")
+                                                                                       (:option :value "male tg" "Male Transgendered")
+                                                                                       (:option :value "female tg" "Female Transgendered")
+                                                                                       (:option :value "very male" "Alpha Male")
+                                                                                       (:option :value "femmy" "Male, but a little female.")
+                                                                                       (:option :value "very female" "Alpha Female")
+                                                                                       (:option :value "butchy" "Female, somewhat masculine."))
+                                                                              (:p :class "help-block" "Not required, but definitely recommended.")))
+                                                      (%-cgroup :name "Name"
+                                                                :inner (:input :id "pseudonym" :type "text" :name "name" :placeholder "or pseudonym"))
+                                                      (%-cgroup :name "Age"
+                                                                :inner (:select :id "agef"
+                                                                                :name "age"
+                                                                                (:option :value "18-20" "18-20")
+                                                                                (:option :value "20-25" "20-25")
+                                                                                (:option :value "25-30" "25-30")
+                                                                                (:option :value "30-35" "30-35")
+                                                                                (:option :value "35-40" "35-40")
+                                                                                (:option :value "40-45" "40-45")
+                                                                                (:option :value "45-50" "45-50")
+                                                                                (:option :value "50-55" "50-55")
+                                                                                (:option :value "55-60" "55-60")
+                                                                                (:option :value "60-65" "60-65")
+                                                                                (:option :value "65-70" "65-70")
+                                                                                (:option :value "70+" "70+")))
+
                                                       (%-cgroup :name "Bio"
                                                                 :inner (:span (:textarea :name "bio" "The Bio.")))))
                               (%-agroup :name "Preferences"
@@ -228,7 +265,14 @@
                                                       (:button :class "btn btn-primary" "Save")))
                               (%-agroup :name "Developer Console"
                                         :dataparent "#cpanel"
-                                        :inner "Developer Console goes here.")))))))
+                                        :inner (:form :id "devform" :class "form-horizontal"
+                                                      (%-cgroup
+                                                       :name "Development Mode"
+                                                       :inner (:span (:input :id "devtog"
+                                                                             :type "checkbox"
+                                                                             :name "devmode"
+                                                                             :onclick (ps-inline (settings-toggle "#devtog" "developer")))
+                                                                     (:p :class "help-block" "If checked, disables the map, among other things.")))))))))))
 
 (defun %-random-element-id ()
   "Build a random string to use as an HTML element id."
@@ -264,8 +308,8 @@
 (defun w/json (msg)
   (setf (hunchentoot:content-type*) "application/json")
   msg)
-(defun dialog-set (m)
-  (w/session (setf (session-value :status) m)))
+(defun dialog-set (message)
+  (w/session (setf (session-value :status) message)))
 (defun dialog-msg ()
   (w/session
     (let ((msg (session-value :status)))
@@ -461,7 +505,6 @@
                                                 (let ((nam (@ x name))
                                                       (val (@ x value)))
                                                   '(nam val)))))
-
 (defpsmacro settings-toggle (htmlelement remotename)
   "Used mainly for checkboxes, click the box, set the option in the database."
   `((@ $ ajax) (create
@@ -488,16 +531,13 @@
                  ((@ navigator geolocation get-Current-Position)
                   (lambda (pos)
                     ((@ goog_map pan-To) (new ((@ google maps -Lat-Lng) (@ pos coords latitude) (@ pos coords longitude)))))))
-
       init (lambda ()
              (if navigator.geolocation
                  ((@ navigator geolocation get-Current-Position)
                   (@ liaison isuccess)
                   (@ liaison ierror))))
-
       ifailure (lambda ()
                 nil)
-
       isuccess (lambda (pos)
                      ((@ ($ "#status") toggle))
                      (setf goog_pos  (new ((@ google maps -Lat-Lng)
@@ -533,18 +573,6 @@
                        ((@ iw.open) goog_map mk)))
                     ((@ goog_markers push) mk)
                     true)
-      ;; profile-option (ps (lambda (name)
-      ;;                      (settings-toggle "#public"
-      ;;                                       "public")))
-      ;; prefssubmit (ps (lambda (x)
-      ;;                   (let ((theform (@ ($ (@ "#prefsform")) 0))
-      ;;                         (tosend (create nil)))
-      ;;                     (mapcar (lambda (x)
-      ;;                         (setq (@ tosend (@ x name)) (@ x value)))))))
-      
-      ;; _focus_on_marker  (lambda (x)
-      ;;                     ((@ goog_map pan-To) ((@ x get-Position))))
-
       clearmap (lambda ()
                      ((@ $ each) goog_markers (lambda (idx val)
                                                 ((@ val set-Map) nil)
@@ -569,10 +597,18 @@
                (and (@ navigator geolocation)
                     ((@ navigator geolocation get-Current-Position)
                      (lambda (pos)
-                       (ps ((@ $ ajax) (create
+                       ((@ $ ajax) (create
                                     type "POST"
                                     url "/beacon"
-                                    data (create position pos))))))))
+                                    data (create position pos)))))))
+      prefload (lambda (prefo)
+                 (ps ((@ $ ajax) (create
+                                  url (concatenate 'string "/settings/get/" prefo)
+                                  data-Type "json"
+                                  success (lambda (x)
+                                            (and (string= (@ x result) "true")
+                                                 ((@ (concatenate 'string "#" prefo) val) "checked"))))))
+                                                 ((@ ($ (@ (concatenate 'string "#" prefo))) val) "checked"))
       mkimage (lambda ()
                (new ((@ google maps -Marker-Image) "/girls_marker.png"
                      (new ((@ google maps -Size) 20 32))
@@ -580,9 +616,10 @@
                      (new ((@ google maps -Point) 0 32)))))))
     ((@ ($ document) ready) (lambda ()
                               ((@ liaison init))
-                              (set-Timeout (lambda () ((@ liaison loader))) 2000)
-                              (set-Interval (@ liaison beacon) 30000)
-                              (set-Interval (@ liaison loader) 60000)))))
+                              (set-Timeout (lambda ()
+                                             ((@ liaison loader))) 2000)
+                              (set-Timeout (@ liaison beacon) 30000)
+                              (set-Timeout (@ liaison loader) 60000)))))
 
 (defun page-content (url)
   (multiple-value-bind (content status headers uri stream must-close phrase)
@@ -593,4 +630,71 @@
     (unless (= status 200)
            (error "unexpected status ~A {~A} on ~A" status phrase uri))
     content))
+
+(defun json-rsp (lst)
+  (let* ((ox (empty-object))
+         (to-send (mapcar (lambda (x)
+                            (setf (jsown:val ox (car x)) (second x)))
+                          lst)))
+    (w/json (jsown:to-json to-send))))
+
+(defun handler/settings ()
+  (labels ((toggle-setting (name)
+             (let* ((the-uid (u/uid))
+                    (the-user-doc (car (@-q "users" ($ "uid" the-uid))))
+                    (the-value (parameter "value")))
+               (if the-user-doc
+                   (progn
+                     (if the-value
+                         (add-element name "1" the-user-doc)
+                         (rm-element name the-user-doc))
+                     (@-m (db.save "users" the-user-doc))
+                     (json-rsp '(("result" "success"))))
+                   (json-rsp '(("result" "no user doc??")))))))
+
+    (w/logged-in
+     (let* ((the-setting (parameter "name")))
+       (and the-setting
+            (toggle-setting the-setting))))))
+
+;; (defun ajax/marker-info ()
+;;   (w/logged-in
+;;    (let* ((tof (split-by "settings/get" (hunchentoot:request-pathname))))
+;;      (w/json (format nil "~a" )))))
+
+(defun one-level-json (n v)
+  (setf (jsown:val (jsown:empty-object) n) v))
+
+(defun has-preference (n)
+  (let ((the-user-doc (@-q "users" ($ "uid" (u/uid)))))
+    (get-element n the-user-doc)))
+
+(defun handler/preference ()
+  (let ((pref-option (cl-ppcre:regex-replace-all "/settings/get/" (request-uri*) "")))
+    (if (has-preference pref-option)
+        (w/json (jsown:to-json (one-level-json "result" "true")))
+        (w/json (jsown:to-json (one-level-json "result" "false"))))))
+    ;;      (jso-n (jsown:empty-object))
+    ;;      (the-user-doc (@-q "users" ($ "uid" (u/uid))))
+    ;;      (result-obj (jsown:empty-object))
+    ;;      (pref-res (get-element pref-option the-user-doc)))
+
+    ;; (if pref-res
+    ;;     (setf (jsown:val result-obj "result") "true")
+    ;;     (setf (jsown:val result-obj "result") "false"))
+        
+    ;; (w/json
+    ;;  (jsown:to-json jso-n))))
+
+;; (defun testy (x flag)
+;;   (macrolet ((fudge (z)
+;;                ` (if flag (* ,z ,z) ,z)))
+;;     (+ x
+;;        (fudge x)
+;;        (fudge (+ x 1)))))
+
+
+
+
+
 
