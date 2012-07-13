@@ -24,7 +24,7 @@
        (hunchentoot:create-prefix-dispatcher "/feeds" 'handler/feeds)
 
        (hunchentoot:create-prefix-dispatcher "/beacon" 'ajax/beacon)
-       (hunchentoot:create-prefix-dispatcher "/gather" 'ajax/load-public-map)
+       (hunchentoot:create-prefix-dispatcher "/gather" 'ajax/gather) ;load-public-map)
        (hunchentoot:create-prefix-dispatcher "/marker/" 'ajax/marker-info)
 
        (hunchentoot:create-prefix-dispatcher "/css" 'handler/site-css)
@@ -88,7 +88,7 @@
        (:script :type "text/javascript" :src "/jquery-min.js"))
       (:body
         (:div :class "navbar navbar-fixed-top"
-         (:div :class "navbar-inner"
+          (:div :class "navbar-inner"
            (:div :class "container"
              (if (w/session (session-value :uid))
                  (htm (:ul :class "nav"
@@ -431,7 +431,7 @@
     (("html,body") (:height "100%"))
     ((".container,.row,#canvas,.span12") (:height "inherit"))))
 
-(defun ajax/load-public-map ()
+(defun ajax/gather ()
   (no-cache)
   (let* ((owners (db-get-active-uids))
          (records (mapcar (lambda (x)
@@ -584,7 +584,7 @@
                                             ((@ val set-Map) nil)
                                             true))
                                             
-                 ((@ $ get-J-S-O-N) (concatenate 'string "/gather/" timeval)
+                 ((@ $ get-J-S-O-N) "/gather" ;(concatenate 'string "/gather/" timeval)
                                     (lambda (dat)
                                       ((@ $ each)
                                        dat
