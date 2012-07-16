@@ -2,42 +2,8 @@
 
 (in-package #:liaison)
 
-(defparameter *site-acceptor* nil)
-(defparameter *dispatch-table* nil)
 
-(setq hunchentoot:*show-lisp-errors-p* nil
-      *show-lisp-backtraces-p* nil)
-(setq hunchentoot:*dispatch-table*
-      (list
-       (hunchentoot:create-prefix-dispatcher "/login" 'handler/login)
-       (hunchentoot:create-prefix-dispatcher "/logout" 'handler/logout)
-       (hunchentoot:create-prefix-dispatcher "/register" 'handler/register)
-
-       (hunchentoot:create-prefix-dispatcher "/profile" 'handler/profile)
-       (hunchentoot:create-prefix-dispatcher "/settings/toggle" 'handler/settings)
-       (hunchentoot:create-prefix-dispatcher "/settings/get/" 'handler/preference)
-
-       (hunchentoot:create-prefix-dispatcher "/feeds" 'handler/feeds)
-
-       (hunchentoot:create-prefix-dispatcher "/beacon" 'ajax/beacon)
-       (hunchentoot:create-prefix-dispatcher "/gather" 'ajax/gather) ;load-public-map)
-       (hunchentoot:create-prefix-dispatcher "/marker/" 'ajax/marker-info)
-
-       (hunchentoot:create-prefix-dispatcher "/css" 'handler/site-css)
-       (hunchentoot:create-prefix-dispatcher "/js" 'handler/site-js)
-       (hunchentoot:create-regex-dispatcher "^/$" 'page/main)))
-
-(defun srv/start (&key (port 8082))
-  (labels ((resource-path (path)
-             (truename (asdf:system-relative-pathname :liaison path))))
-    (setq *site-acceptor*
-          (make-instance 'hunchentoot:easy-acceptor
-                         :document-root (resource-path "./resources/static/")
-                         :port port))
-    (hunchentoot:start *site-acceptor*)))
-
-(defun srv/stop ()
-  (hunchentoot:stop *site-acceptor*))
+; Macros
 
 (defmacro w/session (&rest body)
   `(progn
@@ -153,6 +119,82 @@
         (dialog-msg)
         (htm
          (:script :src "/bs/js/bootstrap.js"))))))
+(defmacro %-agroup (&key name dataparent inner)
+    (let ((the-inner-div (%-random-element-id)))
+      `(htm (:div :class "accordion-group"
+                  (:div :class "accordion-heading"
+                        (:a :class "accordion-toggle"
+                            :data-toggle "collapse"
+                            :data-parent ,dataparent
+                            :href ,(second the-inner-div) ,name))
+                  (:div :id ,(car the-inner-div)
+                        :class "accordion-body collapse"
+                        (:div :class "accordion-inner"
+                              ,inner))))))
+(defmacro %-cgroup (&key name inner targetid)
+  (let ((target-id (if targetid
+                       (concatenate 'string "#" targetid)
+                       (second (%-random-element-id))))
+        (the-inner (or inner
+                       (htm (:div "Nothing sent for inner html!")))))
+                       
+    `(htm (:div :class "control-group"
+          (:label :class "control-label" :for ,target-id ,name)
+          (:div :class "controls"
+            ,the-inner)))))
+
+
+
+; What I'd like to see
+
+;; (@q/<collection> name value)
+;; (@q/<collection>) -> all of the docs
+;; (f-> (@q/users) "uid" "12")
+
+;; (@q-> '(users uid "07E8FE7B-0091-427C-8F1A-16D271F2CDFB"))
+
+;; (defmacro @q-> (parms)
+;;   `(destructuring-bind (coll n v) ,parms
+;;     (@-m (@-q coll ($ n v)))))
+
+; ...
+
+
+(defparameter *site-acceptor* nil)
+(defparameter *dispatch-table* nil)
+
+(setq hunchentoot:*show-lisp-errors-p* nil
+      *show-lisp-backtraces-p* nil)
+(setq hunchentoot:*dispatch-table*
+      (list
+       (hunchentoot:create-prefix-dispatcher "/login" 'handler/login)
+       (hunchentoot:create-prefix-dispatcher "/logout" 'handler/logout)
+       (hunchentoot:create-prefix-dispatcher "/register" 'handler/register)
+
+       (hunchentoot:create-prefix-dispatcher "/profile" 'handler/profile)
+       (hunchentoot:create-prefix-dispatcher "/settings/toggle" 'handler/settings)
+       (hunchentoot:create-prefix-dispatcher "/settings/get/" 'handler/preference)
+
+       (hunchentoot:create-prefix-dispatcher "/feeds" 'handler/feeds)
+
+       (hunchentoot:create-prefix-dispatcher "/beacon" 'ajax/beacon)
+       (hunchentoot:create-prefix-dispatcher "/gather" 'ajax/gather) ;load-public-map)
+       (hunchentoot:create-prefix-dispatcher "/marker/" 'ajax/marker-info)
+
+       (hunchentoot:create-prefix-dispatcher "/css" 'handler/site-css)
+       (hunchentoot:create-prefix-dispatcher "/js" 'handler/site-js)
+       (hunchentoot:create-regex-dispatcher "^/$" 'page/main)))
+
+(defun srv/start (&key (port 8082))
+  (labels ((resource-path (path)
+             (truename (asdf:system-relative-pathname :liaison path))))
+    (setq *site-acceptor*
+          (make-instance 'hunchentoot:easy-acceptor
+                         :document-root (resource-path "./resources/static/")
+                         :port port))
+    (hunchentoot:start *site-acceptor*)))
+(defun srv/stop ()
+  (hunchentoot:stop *site-acceptor*))
 
 (defun page/main ()
   (no-cache)
@@ -216,30 +258,6 @@
   "Build a random string to use as an HTML element id."
   (let ((tid (string (gensym))))
     (list tid (concatenate 'string "#" tid))))
-(defmacro %-agroup (&key name dataparent inner)
-    (let ((the-inner-div (%-random-element-id)))
-      `(htm (:div :class "accordion-group"
-                  (:div :class "accordion-heading"
-                        (:a :class "accordion-toggle"
-                            :data-toggle "collapse"
-                            :data-parent ,dataparent
-                            :href ,(second the-inner-div) ,name))
-                  (:div :id ,(car the-inner-div)
-                        :class "accordion-body collapse"
-                        (:div :class "accordion-inner"
-                              ,inner))))))
-(defmacro %-cgroup (&key name inner targetid)
-  (let ((target-id (if targetid
-                       (concatenate 'string "#" targetid)
-                       (second (%-random-element-id))))
-        (the-inner (or inner
-                       (htm (:div "Nothing sent for inner html!")))))
-                       
-    `(htm (:div :class "control-group"
-          (:label :class "control-label" :for ,target-id ,name)
-          (:div :class "controls"
-            ,the-inner)))))
-
 (defun u/uid ()
   (w/session
    (session-value :uid)))
@@ -260,8 +278,6 @@
 (defun check/email-exists (email)
   (@-q "users" ($ "email" email)))
 
-(defun $-replace (pat buf)
-  (cl-ppcre:regex-replace pat (format nil "~a" buf) ""))
 (defun hash-password (pas)
   (ironclad:byte-array-to-hex-string
    (ironclad:digest-sequence :sha256
@@ -371,7 +387,9 @@
 
 (defun ajax/gather ()
   (no-cache)
-  (let* ((owners (db-get-active-uids))
+  (let* ((owners (if (u/uid)
+                     (db-get-active-all-uids)
+                     (db-get-active-public-uids)))
          (records (mapcar (lambda (x)
                             (let ((tval (db-latest-from-user x))
                                   (the-email (db-email-from-uid x)))
@@ -420,19 +438,38 @@
              (w/json "{result:'true'}"))
            (w/json "{result:'failed'}"))))))
 
-(defun db-get-active-uids ()
+(defun user-from-uid (u)
+  (with-mongo-connection (:db "liaison")
+    (car (docs (iter (db.find "users" ($ "uid" u)))))))
+
+(defun uid-is-public (u)
+  (let ((user-doc (user-from-uid u)))
+    (when user-doc
+      (get-element "public" user-doc))))
+
+(defun db-get-active-public-uids ()
+  (remove-if-not #'uid-is-public
+                 (db-get-active-uids)))
+
+(defun db-get-active-all-uids ()
   (@-m (get-element "values"
-          (car (docs (iter (db.distinct "beacon" "owner")))))))
+                    (car (docs (iter
+                                (db.distinct "beacon" "owner")))))))
+
 (defun db-latest-from-user (uid)
   (@-m
    (car (docs (iter (db.sort "beacon" ($ "owner" uid)
                              :limit 1
                              :asc nil
                              :field "timestamp"))))))
+
 (defun db-email-from-uid (uid)
   (@-m
    (get-element "email"
                 (car (docs (iter (db.find "users" ($ "uid" uid))))))))
+
+
+
 
 (defun universal-to-unix-time (ut)
   (let ((epoch-difference (encode-universal-time 0 0 0 1 1 1970 0)))
