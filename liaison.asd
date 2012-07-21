@@ -6,6 +6,8 @@
   :author "Your Name <your.name@example.com>"
   :license "Specify license here"
   :depends-on (#:hunchentoot
+               #:hunchen.io
+               #:hunchensocket
                #:cl-who
                #:lparallel
                #:parenscript

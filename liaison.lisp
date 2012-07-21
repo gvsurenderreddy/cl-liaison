@@ -1,13 +1,21 @@
-
+; -*- mode: Lisp eval: (hs-hide-all) -*-
 
 (in-package #:liaison)
 
 (setf lparallel:*kernel* (make-kernel 16))
 
+;(defparameter *io-acceptor* nil)
 (defparameter *site-acceptor* nil)
 (defparameter *dispatch-table* nil)
 
-;(db.use "liaison")
+;; (define-socket.io-handler (lambda (message)
+;;                             (declare (ignore message))))
+
+;; (socket.io-on "connection" (session)
+;;   (declare (ignore session))
+;;   (socket.io-emit "news" '((:hello . "world")))
+;;   (socket.io-on "my other event" (data)
+;;     (log-message :debug data)))
 
 (setq hunchentoot:*show-lisp-errors-p* t
       *show-lisp-backtraces-p* t)
@@ -657,11 +665,6 @@
        (and the-setting
             (toggle-setting the-setting))))))
 
-;; (defun ajax/marker-info ()
-;;   (w/logged-in
-;;    (let* ((tof (split-by "settings/get" (hunchentoot:request-pathname))))
-;;      (w/json (format nil "~a" )))))
-
 (defun one-level-json (n v)
   (setf (jsown:val (jsown:empty-object) n) v))
 
@@ -674,27 +677,5 @@
     (if (has-preference pref-option)
         (w/json (jsown:to-json (one-level-json "result" "true")))
         (w/json (jsown:to-json (one-level-json "result" "false"))))))
-    ;;      (jso-n (jsown:empty-object))
-    ;;      (the-user-doc (@-q "users" ($ "uid" (u/uid))))
-    ;;      (result-obj (jsown:empty-object))
-    ;;      (pref-res (get-element pref-option the-user-doc)))
-
-    ;; (if pref-res
-    ;;     (setf (jsown:val result-obj "result") "true")
-    ;;     (setf (jsown:val result-obj "result") "false"))
-        
-    ;; (w/json
-    ;;  (jsown:to-json jso-n))))
-
-;; (defun testy (x flag)
-;;   (macrolet ((fudge (z)
-;;                ` (if flag (* ,z ,z) ,z)))
-;;     (+ x
-;;        (fudge x)
-;;        (fudge (+ x 1)))))
-
-
-
-
 
 

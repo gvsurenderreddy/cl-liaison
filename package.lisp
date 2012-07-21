@@ -5,6 +5,8 @@
         #:cl-who
         #:cl-mongo
         #:hunchentoot
+        #:hunchensocket
+        #:hunchen.io
         #:jsown
         #:lparallel
         #:net.telent.date
