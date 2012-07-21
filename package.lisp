@@ -8,10 +8,8 @@
         #:hunchensocket
         #:hunchen.io
         #:jsown
-        #:lparallel
         #:net.telent.date
         #:cl-moore
         #:parenscript)
   (:export #:srv/start
-           #:srv/stop)
-  (:shadowing-import-from #:lparallel #:chain))
+           #:srv/stop))

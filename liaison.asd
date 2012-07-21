@@ -9,7 +9,6 @@
                #:hunchen.io
                #:hunchensocket
                #:cl-who
-               #:lparallel
                #:parenscript
                #:css-lite
                #:uuid
