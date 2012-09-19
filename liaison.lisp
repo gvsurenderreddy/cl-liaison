@@ -3,19 +3,8 @@
 (in-package #:liaison)
 
 
-;<<<<<<< HEAD
-;(defparameter *io-acceptor* nil)
 (defparameter *site-acceptor* nil)
 (defparameter *dispatch-table* nil)
-
-;; (define-socket.io-handler (lambda (message)
-;;                             (declare (ignore message))))
-
-;; (socket.io-on "connection" (session)
-;;   (declare (ignore session))
-;;   (socket.io-emit "news" '((:hello . "world")))
-;;   (socket.io-on "my other event" (data)
-;;     (log-message :debug data)))
 
 (setq hunchentoot:*show-lisp-errors-p* t
       *show-lisp-backtraces-p* t)
@@ -50,9 +39,6 @@
 
 (defun srv/stop ()
   (hunchentoot:stop *site-acceptor*))
-;; =======
-;; ; Macros
-;; >>>>>>> 2b1636dd3c85bcb2a94cd7997c1bfc96d7b6c217
 
 (defmacro ext-random-element-id ()
   (let ((tid (string (gensym))))
@@ -196,21 +182,6 @@
           (:div :class "controls"
             ,the-inner)))))
 
-
-
-; What I'd like to see
-
-;; (@q/<collection> name value)
-;; (@q/<collection>) -> all of the docs
-;; (f-> (@q/users) "uid" "12")
-
-;; (@q-> '(users uid "07E8FE7B-0091-427C-8F1A-16D271F2CDFB"))
-
-;; (defmacro @q-> (parms)
-;;   `(destructuring-bind (coll n v) ,parms
-;;     (@-m (@-q coll ($ n v)))))
-
-; ...
 
 
 (defparameter *site-acceptor* nil)
@@ -689,7 +660,6 @@
                    (rm-element the-setting user-doc))
                (db.update "users" ($ "uid" user-uid) user-doc)
                (json-rsp '(("result" "success")))))))))))
-;>>>>>>> 2b1636dd3c85bcb2a94cd7997c1bfc96d7b6c217
 
 (defun one-level-json (n v)
   (setf (jsown:val (jsown:empty-object) n) v))
@@ -710,5 +680,4 @@
         (if (get-element pref-option the-user-doc)
             (w/json (jsown:to-json (one-level-json "result" "true")))
             (w/json (jsown:to-json (one-level-json "result" "no"))))))))
-;>>>>>>> 2b1636dd3c85bcb2a94cd7997c1bfc96d7b6c217
 
