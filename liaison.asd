@@ -6,8 +6,6 @@
   :author "Your Name <your.name@example.com>"
   :license "Specify license here"
   :depends-on (#:hunchentoot
-               #:hunchen.io
-               #:hunchensocket
                #:cl-who
                #:parenscript
                #:css-lite
@@ -20,4 +18,3 @@
                #:cl-mongo)
   :components ((:file "package")
                (:file "liaison")))
-

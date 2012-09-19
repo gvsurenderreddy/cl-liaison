@@ -5,8 +5,6 @@
         #:cl-who
         #:cl-mongo
         #:hunchentoot
-        #:hunchensocket
-        #:hunchen.io
         #:jsown
         #:net.telent.date
         #:cl-moore
