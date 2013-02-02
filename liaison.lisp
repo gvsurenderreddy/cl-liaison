@@ -8,6 +8,7 @@
 
 (setq hunchentoot:*show-lisp-errors-p* t
       *show-lisp-backtraces-p* t)
+
 (setq hunchentoot:*dispatch-table*
       (list
        (hunchentoot:create-prefix-dispatcher "/login" 'handler/login)
@@ -49,6 +50,7 @@
      (hunchentoot:start-session)
      (setf (session-max-time hunchentoot:*session*) (* 60 60 24 265))
      ,@body))
+
 (defmacro w/logged-in (&rest body)
   `(let* ((uid (session-value :uid))
           (user-doc (car (@-q "users" ($ "uid" uid)))))
@@ -181,8 +183,6 @@
           (:label :class "control-label" :for ,target-id ,name)
           (:div :class "controls"
             ,the-inner)))))
-
-
 
 (defparameter *site-acceptor* nil)
 (defparameter *dispatch-table* nil)
@@ -487,9 +487,6 @@
   (@-m
    (get-element "email"
                 (car (docs (iter (db.find "users" ($ "uid" uid))))))))
-
-
-
 
 (defun universal-to-unix-time (ut)
   (let ((epoch-difference (encode-universal-time 0 0 0 1 1 1970 0)))

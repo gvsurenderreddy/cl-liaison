@@ -7,7 +7,6 @@
         #:hunchentoot
         #:jsown
         #:net.telent.date
-        #:cl-moore
         #:parenscript)
   (:export #:srv/start
            #:srv/stop))
