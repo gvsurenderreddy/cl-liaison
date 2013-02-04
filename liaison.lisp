@@ -292,9 +292,7 @@
       (and msg
         (progn
           (hunchentoot:delete-session-value :status)
-          (htm
-           (:div :class "alert alert-danger"
-                 (str msg))))))))
+          (cl-who:htm (:div :class "alert alert-danger" (str msg))))))))
 (defun check/email-exists (email)
   (@-q "users" ($ "email" email)))
 
@@ -378,7 +376,7 @@
                                 (dialog-set "Another user exists with that email address.")
                                 (hunchentoot:redirect "/register"))
                               (progn
-                                (if (string= sekret "ingram")
+                                (if (string= sekret "ruth")
                                     (@-m
                                       (add-element "email" new-email td)
                                       (add-element "uid" uu td)
