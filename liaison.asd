@@ -12,9 +12,10 @@
                #:uuid
                #:jsown
                #:css-lite
-               #:cl-moore
+               #:cl-ivy
                #:drakma
-               #:net-telent-date
-               #:cl-mongo)
+               #:postmodern
+               #:net-telent-date)
   :components ((:file "package")
-               (:file "liaison")))
+               (:file "liaison")
+               (:file "db")))

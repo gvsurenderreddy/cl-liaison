@@ -2,7 +2,6 @@
 
 (in-package #:liaison)
 
-
 (defparameter *site-acceptor* nil)
 (defparameter *dispatch-table* nil)
 
@@ -29,13 +28,11 @@
        (hunchentoot:create-regex-dispatcher "^/$" 'page/main)))
 
 (defun srv/start (&key (port 8082))
-  (labels ((resource-path (path)
-             (truename (asdf:system-relative-pathname :liaison path))))
-    (setq *site-acceptor*
-          (make-instance 'hunchentoot:easy-acceptor
-                         :document-root (resource-path "./resources/static/")
-                         :port port))
-    (hunchentoot:start *site-acceptor*)))
+  (setq *site-acceptor*
+        (make-instance 'hunchentoot:easy-acceptor
+                       :document-root (cl-ivy:resource-path "./resources/static/")
+                       :port port))
+  (hunchentoot:start *site-acceptor*))
 
 (defun srv/stop ()
   (hunchentoot:stop *site-acceptor*))
@@ -49,7 +46,19 @@
      (hunchentoot:start-session)
      (setf (session-max-time hunchentoot:*session*) (* 60 60 24 265))
      ,@body))
+
 (defmacro w/logged-in (&rest body)
+  `(let ((uid (session-value :uid)))
+     (if uid
+         (let ((the-customer (car (with-pg (query
+                                            (:select '* :from 'customer
+                                                     :where (:= 'uid uid)))))))
+           (if the-customer
+               ,@body
+               (hunchentoot:redirect "/login")))
+         (redirect "/login"))))
+
+(defmacro -w/logged-in (&rest body)
   `(let* ((uid (session-value :uid))
           (user-doc (car (@-q "users" ($ "uid" uid)))))
      (if user-doc
@@ -436,6 +445,19 @@
                     po))
               records)))))
 (defun ajax/beacon ()
+  (w/logged-in
+   (let ((longitude (parameter "position[coords][longitude]"))
+         (latitude (parameter "position[coords][latitude]"))
+         (my-uid (session-value "uid")))
+     (with-pg (insert-dao
+               (make-instance 'beacon
+                              :uid my-uid
+                              :latitude latitude
+                              :longitude longitude)))
+     (w/json "{result:'true'}"))))
+
+
+(defun -ajax/beacon ()
   (w/logged-in
    (labels ((normalize-name (f)
               (re/kill "position"
