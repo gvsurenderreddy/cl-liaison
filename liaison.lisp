@@ -7,6 +7,7 @@
 
 (setq hunchentoot:*show-lisp-errors-p* t
       *show-lisp-backtraces-p* t)
+
 (setq hunchentoot:*dispatch-table*
       (list
        (hunchentoot:create-prefix-dispatcher "/login" 'handler/login)
@@ -191,8 +192,6 @@
           (:div :class "controls"
             ,the-inner)))))
 
-
-
 (defparameter *site-acceptor* nil)
 (defparameter *dispatch-table* nil)
 
@@ -301,9 +300,7 @@
       (and msg
         (progn
           (hunchentoot:delete-session-value :status)
-          (htm
-           (:div :class "alert alert-danger"
-                 (str msg))))))))
+          (cl-who:htm (:div :class "alert alert-danger" (str msg))))))))
 (defun check/email-exists (email)
   (@-q "users" ($ "email" email)))
 
@@ -387,7 +384,7 @@
                                 (dialog-set "Another user exists with that email address.")
                                 (hunchentoot:redirect "/register"))
                               (progn
-                                (if (string= sekret "ingram")
+                                (if (string= sekret "ruth")
                                     (@-m
                                       (add-element "email" new-email td)
                                       (add-element "uid" uu td)
@@ -509,9 +506,6 @@
   (@-m
    (get-element "email"
                 (car (docs (iter (db.find "users" ($ "uid" uid))))))))
-
-
-
 
 (defun universal-to-unix-time (ut)
   (let ((epoch-difference (encode-universal-time 0 0 0 1 1 1970 0)))
