@@ -15,7 +15,10 @@
           :col-type string)
    (password :accessor customer-password
              :initarg :password
-             :col-type string))
+             :col-type string)
+   (public :accessor customer-public
+           :initform nil
+           :col-type boolean))
   (:metaclass dao-class)
   (:keys uid))
 

@@ -17,5 +17,7 @@
                #:postmodern
                #:net-telent-date)
   :components ((:file "package")
-               (:file "liaison")
-               (:file "db")))
+               (:module "src"
+                        :components ((:file "db")
+                                     (:file "macros")
+                                     (:file "liaison")))))
