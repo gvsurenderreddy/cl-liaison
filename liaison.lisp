@@ -119,6 +119,12 @@
         (dialog-msg)
         (htm
          (:script :src "/bs/js/bootstrap.js"))))))
+
+(defun %-random-element-id ()
+  "Build a random string to use as an HTML element id."
+  (let ((tid (string (gensym))))
+    (list tid (concatenate 'string "#" tid))))
+
 (defmacro %-agroup (&key name dataparent inner)
     (let ((the-inner-div (%-random-element-id)))
       `(htm (:div :class "accordion-group"
@@ -253,11 +259,6 @@
                                                                            :name "developer"
                                                                            :onclick (ps-inline (settings-toggle)))
                                                                    (:p :class "help-block" "If checked, disables the map, among other things."))))))))))
-
-(defun %-random-element-id ()
-  "Build a random string to use as an HTML element id."
-  (let ((tid (string (gensym))))
-    (list tid (concatenate 'string "#" tid))))
 (defun u/uid ()
   (w/session
    (session-value :uid)))

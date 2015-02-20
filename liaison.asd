@@ -12,7 +12,7 @@
                #:uuid
                #:jsown
                #:css-lite
-               #:cl-moore
+               #:cl-ivy
                #:drakma
                #:net-telent-date
                #:cl-mongo)

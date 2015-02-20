@@ -4,7 +4,7 @@
         :alexandria
         :cl-mongo
         :jsown
-        :cl-moore
+        :cl-ivy
         :parenscript
         :cl-who)
   (:shadowing-import-from :lparallel :chain)
