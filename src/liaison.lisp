@@ -1,6 +1,5 @@
-; -*- mode: Lisp eval: (hs-hide-all) -*-
 
-(in-package #:liaison)
+(in-package #:cl-liaison)
 
 (defparameter *site-acceptor* nil)
 (defparameter *dispatch-table* nil)
@@ -53,43 +52,6 @@
 
 (defpsmacro $sel (x)
   (concatenate 'string "#" x))
-
-(defparameter *site-acceptor* nil)
-(defparameter *dispatch-table* nil)
-
-(setq hunchentoot:*show-lisp-errors-p* nil
-      *show-lisp-backtraces-p* nil)
-(setq hunchentoot:*dispatch-table*
-      (list
-       (hunchentoot:create-prefix-dispatcher "/login" 'handler/login)
-       (hunchentoot:create-prefix-dispatcher "/logout" 'handler/logout)
-       (hunchentoot:create-prefix-dispatcher "/register" 'handler/register)
-
-       (hunchentoot:create-prefix-dispatcher "/profile" 'handler/profile)
-       (hunchentoot:create-prefix-dispatcher "/settings/toggle" 'handler/settings)
-       (hunchentoot:create-prefix-dispatcher "/settings/get/" 'handler/preference)
-
-       (hunchentoot:create-prefix-dispatcher "/feeds" 'handler/feeds)
-
-       (hunchentoot:create-prefix-dispatcher "/beacon" 'ajax/beacon)
-       (hunchentoot:create-prefix-dispatcher "/gather" 'ajax/gather) ;load-public-map)
-       (hunchentoot:create-prefix-dispatcher "/marker/" 'ajax/marker-info)
-
-       (hunchentoot:create-prefix-dispatcher "/css" 'handler/site-css)
-       (hunchentoot:create-prefix-dispatcher "/js" 'handler/site-js)
-       (hunchentoot:create-regex-dispatcher "^/$" 'page/main)))
-
-(defun srv/start (&key (port 8082))
-  (labels ((resource-path (path)
-             (truename (asdf:system-relative-pathname :liaison path))))
-    (setq *site-acceptor*
-          (make-instance 'hunchentoot:easy-acceptor
-                         :document-root (resource-path "./resources/static/")
-                         :port port))
-    (hunchentoot:start *site-acceptor*)))
-(defun srv/stop ()
-  (hunchentoot:stop *site-acceptor*))
-
 
 (defun page/main ()
   (no-cache)

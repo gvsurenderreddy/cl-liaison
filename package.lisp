@@ -1,6 +1,6 @@
 ;;;; package.lisp
 
-(defpackage #:liaison
+(defpackage #:cl-liaison
   (:use #:cl
         #:cl-who
         #:hunchentoot

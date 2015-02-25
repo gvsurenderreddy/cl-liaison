@@ -1,9 +1,9 @@
 
-(in-package :liaison)
+(in-package :cl-liaison)
 
 (defmacro with-pg (&body body)
   `(postmodern:with-connection
-       (list "liaison" "cmoore" "fl33j0b" "127.0.0.1" :pooled-p t)
+       (list "liaison" "postgres" "fl33j0b" "192.168.0.10" :pooled-p t)
      ,@body))
 
 (defclass customer ()

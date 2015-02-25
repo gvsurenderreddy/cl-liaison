@@ -1,6 +1,6 @@
-;;;; liaison.asd
 
-(asdf:defsystem #:liaison
+
+(asdf:defsystem #:cl-liaison
   :serial t
   :description "Describe liaison here"
   :author "Your Name <your.name@example.com>"

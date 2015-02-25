@@ -1,6 +1,6 @@
 
 
-(in-package :liaison)
+(in-package :cl-liaison)
 
 (defmacro ext-random-element-id ()
   (let ((tid (string (gensym))))

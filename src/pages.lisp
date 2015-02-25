@@ -1,7 +1,5 @@
 
-(in-package :liaison)
-
-
+(in-package :cl-liaison)
 
 (defun login-page ()
   (with-plain-page
